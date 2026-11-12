@@ -1,0 +1,40 @@
+{
+  "project_name": "EcoWatt Grid Guard",
+  "version": "1.0.0",
+  "optimization": {
+    "default_demand_threshold_kw": 7.00,
+    "default_reserve_margin_kw": 0.20,
+    "target_demand_kw": 6.80,
+    "hysteresis_restore_kw": 0.80,
+    "max_iterations": 10
+  },
+  "lps_weights": {
+    "weight_suitability": 0.35,
+    "weight_occupancy": 0.25,
+    "weight_power": 0.20,
+    "weight_tariff": 0.20
+  },
+  "tariffs_inr": {
+    "peak_rate_per_kwh": 12.00,
+    "shoulder_rate_per_kwh": 7.50,
+    "offpeak_rate_per_kwh": 4.50,
+    "max_reference_tariff": 15.00
+  },
+  "grid_carbon_g_per_kwh": {
+    "baseload": 725.0,
+    "solar_dip_midday": 580.0,
+    "evening_peaker_peak": 880.0
+  },
+  "communication": {
+    "coap_host": "127.0.0.1",
+    "coap_port": 5683,
+    "mqtt_host": "127.0.0.1",
+    "mqtt_port": 1883,
+    "mqtt_embedded_broker": true
+  },
+  "server": {
+    "host": "127.0.0.1",
+    "port": 8000,
+    "debug": false
+  }
+}

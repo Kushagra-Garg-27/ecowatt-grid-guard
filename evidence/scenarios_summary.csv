@@ -1,0 +1,11 @@
+scenario_id,scenario_name,threshold_kw,target_demand_kw,baseline_peak_power_kw,optimized_peak_power_kw,target_achieved,cost_saved_inr,cost_saved_pct,carbon_avoided_kg,total_shifted_energy_kwh,critical_interruptions
+peak_demand_event,Peak-Demand Event (Demonstration Scenario),7.0,6.8,8.6,6.62,True,17.26,1.7,0.22,6.62,0
+normal_operation,Normal Building Operation,7.0,6.8,7.84,6.79,True,0.0,0.0,0.0,6.62,0
+high_tariff_surge,High Electricity Tariff Event,6.5,6.25,8.6,6.25,True,29.29,3.0,0.82,6.62,0
+high_carbon_period,High Carbon-Intensity Period,7.0,6.8,8.6,6.79,True,17.26,1.7,0.33,6.62,0
+low_occupancy,Low Occupancy (Semester Break),5.5,5.3,7.18,5.3,True,37.13,4.1,2.33,6.62,0
+high_occupancy,High Occupancy (Examination Day),8.0,7.7,8.73,7.47,True,26.28,2.6,0.81,6.62,0
+deferrable_ev_charging,Deferrable EV Fleet Charging Optimization,7.0,6.8,8.56,6.59,True,17.26,1.8,0.22,6.62,0
+failed_actuator_ack,Failed Actuator Acknowledgement & Remeasurement,7.0,6.8,8.6,6.62,True,17.26,1.7,0.22,6.62,0
+sensor_comm_failure,Sensor Communication Failure & Gateway Fallback,7.0,6.8,8.6,6.62,True,17.26,1.7,0.22,6.62,0
+demand_recovery_restoration,Demand Recovery & Progressive Load Restoration,7.0,6.8,7.89,6.57,True,0.0,0.0,0.0,6.62,0

@@ -1,0 +1,22 @@
+{
+  "name": "ecowatt-grid-guard",
+  "version": "1.0.0",
+  "description": "IoT-Based Dynamic Energy Optimization, Peak-Load Shifting and Carbon Reduction System",
+  "private": true,
+  "scripts": {
+    "dev": "npm --prefix frontend run dev",
+    "build": "npm --prefix frontend run build",
+    "nodered": "npx --yes node-red --userDir nodered nodered/flows.json"
+  },
+  "keywords": [
+    "iot",
+    "energy-optimization",
+    "smart-building",
+    "coap",
+    "mqtt",
+    "load-shifting",
+    "carbon-reduction"
+  ],
+  "author": "EcoWatt Systems Engineering",
+  "license": "Apache-2.0"
+}

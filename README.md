@@ -250,7 +250,7 @@ git clone <repo_url>
 cd "EcoWatt-Grid-Guard"
 
 # 2. Install Python dependencies
-py -3.12 -m pip install -r backend/requirements.txt
+py -3.12 -m pip install -r requirements.txt
 
 # 3. Install Frontend dependencies
 cd frontend
@@ -267,12 +267,13 @@ cd ..
 .\scripts\start_all.ps1
 ```
 Or start manually in two terminals:
-- **Terminal 1**: `py -3.12 -m uvicorn backend.app.main:app --port 8000 --reload`
-- **Terminal 2**: `cd frontend && npm run dev`
+- **Terminal 1 (Backend)**: `py -3.12 -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000 --reload`
+- **Terminal 2 (Frontend)**: `cd frontend && npm run dev`
 
 Access the services:
 - **Dashboard**: `http://localhost:5173`
 - **REST API Docs**: `http://127.0.0.1:8000/docs`
+- **Node-RED Flows**: `npx --yes node-red --userDir nodered nodered/flows.json` (at `http://127.0.0.1:1880`)
 
 ---
 
@@ -280,55 +281,56 @@ Access the services:
 
 Execute the automated test suite:
 ```powershell
-py -3.12 -m pytest backend/tests -v
+py -3.12 -m pytest tests -v
 ```
 
 ### Actual Test Results (Executed on Windows 11, Python 3.12):
 ```
 ============================= test session starts =============================
-backend/tests/test_integration_api.py::test_api_health PASSED            [  4%]
-backend/tests/test_integration_api.py::test_api_building_status PASSED   [  8%]
-backend/tests/test_integration_api.py::test_api_zones PASSED             [ 13%]
-backend/tests/test_integration_api.py::test_api_loads_and_critical_protection PASSED [ 17%]
-backend/tests/test_integration_api.py::test_api_threshold_configuration PASSED [ 21%]
-backend/tests/test_integration_api.py::test_api_weights_configuration PASSED [ 26%]
-backend/tests/test_integration_coap.py::test_real_coap_telemetry_flow PASSED [ 30%]
-backend/tests/test_integration_mqtt.py::test_mqtt_pub_sub_pipeline PASSED [ 34%]
-backend/tests/test_system_scenarios.py::test_peak_demand_demonstration_scenario PASSED [ 39%]
-backend/tests/test_system_scenarios.py::test_all_ten_scenarios_execute_with_zero_critical_interruptions PASSED [ 43%]
-backend/tests/test_system_scenarios.py::test_failed_actuator_acknowledgement_scenario PASSED [ 47%]
-backend/tests/test_unit_actuator.py::test_critical_load_rejection PASSED [ 52%]
-backend/tests/test_unit_actuator.py::test_flexible_load_modulation PASSED [ 56%]
-backend/tests/test_unit_actuator.py::test_flexible_load_clamping_to_minimum PASSED [ 60%]
-backend/tests/test_unit_actuator.py::test_simulated_actuator_failure PASSED [ 65%]
-backend/tests/test_unit_lps.py::test_lps_standard_calculation PASSED     [ 69%]
-backend/tests/test_unit_lps.py::test_critical_load_strictly_zero_lps PASSED [ 73%]
-backend/tests/test_unit_lps.py::test_zero_suitability_returns_zero_lps PASSED [ 78%]
-backend/tests/test_unit_lps.py::test_division_by_zero_and_boundary_handling PASSED [ 82%]
-backend/tests/test_unit_lps.py::test_weight_normalization PASSED         [ 86%]
-backend/tests/test_unit_scheduler.py::test_scheduler_deadline_and_energy_delivery PASSED [ 91%]
-backend/tests/test_unit_sustainability.py::test_energy_cost_carbon_calculations PASSED [ 95%]
-backend/tests/test_unit_sustainability.py::test_threshold_exceedance_duration PASSED [100%]
+tests/test_integration_api.py::test_api_health PASSED                    [  4%]
+tests/test_integration_api.py::test_api_building_status PASSED           [  8%]
+tests/test_integration_api.py::test_api_zones PASSED                     [ 13%]
+tests/test_integration_api.py::test_api_loads_and_critical_protection PASSED [ 17%]
+tests/test_integration_api.py::test_api_threshold_configuration PASSED   [ 21%]
+tests/test_integration_api.py::test_api_weights_configuration PASSED     [ 26%]
+tests/test_integration_coap.py::test_real_coap_telemetry_flow PASSED     [ 30%]
+tests/test_integration_mqtt.py::test_mqtt_pub_sub_pipeline PASSED        [ 34%]
+tests/test_system_scenarios.py::test_peak_demand_demonstration_scenario PASSED [ 39%]
+tests/test_system_scenarios.py::test_all_ten_scenarios_execute_with_zero_critical_interruptions PASSED [ 43%]
+tests/test_system_scenarios.py::test_failed_actuator_acknowledgement_scenario PASSED [ 47%]
+tests/test_unit_actuator.py::test_critical_load_rejection PASSED         [ 52%]
+tests/test_unit_actuator.py::test_flexible_load_modulation PASSED        [ 56%]
+tests/test_unit_actuator.py::test_flexible_load_clamping_to_minimum PASSED [ 60%]
+tests/test_unit_actuator.py::test_simulated_actuator_failure PASSED      [ 65%]
+tests/test_unit_lps.py::test_lps_standard_calculation PASSED             [ 69%]
+tests/test_unit_lps.py::test_critical_load_strictly_zero_lps PASSED      [ 73%]
+tests/test_unit_lps.py::test_zero_suitability_returns_zero_lps PASSED    [ 78%]
+tests/test_unit_lps.py::test_division_by_zero_and_boundary_handling PASSED [ 82%]
+tests/test_unit_lps.py::test_weight_normalization PASSED                 [ 86%]
+tests/test_unit_scheduler.py::test_scheduler_deadline_and_energy_delivery PASSED [ 91%]
+tests/test_unit_sustainability.py::test_energy_cost_carbon_calculations PASSED [ 95%]
+tests/test_unit_sustainability.py::test_threshold_exceedance_duration PASSED [100%]
 
-======================== 23 passed, 1 warning in 2.41s ========================
+======================== 23 passed, 1 warning in 2.40s ========================
 ```
 
 ### Actual Demonstration Scenario Output (`peak_demand_event`):
 - **Baseline Peak Demand**: $8.60\text{ kW}$
-- **Configured Threshold**: $7.00\text{ kW}$ (Target: $6.80\text{ kW}$)
-- **Optimized Peak Demand**: $6.93\text{ kW}$
-- **Peak Shaving**: $1.67\text{ kW}$ ($19.5\%$ reduction)
-- **Baseline Cost**: $\$33.72$ $\to$ **Optimized Cost**: $\$32.81$ (Cost Saved: $\$0.92$ / $2.7\%$)
-- **Avoided Carbon Emissions**: $0.77\text{ kg CO}_2$ ($2.1\%$)
-- **Shifted Energy**: $6.29\text{ kWh}$
-- **Threshold Exceedance**: $180\text{ minutes baseline} \to 0\text{ minutes optimized}$
-- **Critical Load Interruptions**: **0 (Zero)**
+- **Configured Threshold**: $7.00\text{ kW}$ (Target Demand: $6.80\text{ kW}$)
+- **Optimized Peak Demand**: **$6.62\text{ kW}$** (Target Achieved: **TRUE**, strictly $\le 6.80\text{ kW}$)
+- **Peak Shaving**: **$1.98\text{ kW}$** ($23.0\%$ reduction)
+- **Baseline Cost**: ₹$989.89$ INR $\to$ **Optimized Cost**: ₹$972.62$ INR (Cost Saved: ₹$17.26$ INR / $1.7\%$)
+- **Avoided Carbon Emissions**: $0.22\text{ kg CO}_2$
+- **Shifted Energy**: $6.62\text{ kWh}$
+- **Threshold Exceedance**: $120\text{ minutes baseline} \to 0\text{ minutes optimized}$
+- **Critical Load Interruptions**: **0 (Zero — 100% Guaranteed Protection)**
 
 ---
 
-## 20. Known Limitations
+## 20. Known Limitations & Broker Integration Notes
 
-1. **Software-in-the-Loop Emulation**: Actuators and sensors operate with simulated physical electrical dynamics; physical microcontrollers (e.g. ESP32, Raspberry Pi) can be connected by pointing their CoAP/MQTT client to the gateway IP.
-2. **Simplified Thermal Inertia**: Room temperature dynamics utilize a lumped-capacitance 1-R-1-C thermal model rather than 3D finite-element CFD building simulations.
-3. **Single Grid Phase Modeling**: The system models a balanced single-phase equivalent grid bus ($230\text{V}$ line voltage); multi-phase unbalance estimation is not modeled.
+1. **MQTT Broker Selection**: When an external Eclipse Mosquitto service is not running on the host, the application automatically launches its built-in `EmbeddedMQTTBroker` (asyncio MQTT 3.1.1 server on `127.0.0.1:1883`), allowing Paho-MQTT, the React dashboard, and Node-RED to communicate seamlessly without requiring external service installations.
+2. **Software-in-the-Loop Emulation**: Actuators and sensors operate with simulated physical electrical dynamics; physical microcontrollers (e.g. ESP32, Raspberry Pi) can be connected by pointing their CoAP/MQTT client to the gateway IP.
+3. **Simplified Thermal Inertia**: Room temperature dynamics utilize a lumped-capacitance 1-R-1-C thermal model rather than 3D finite-element CFD building simulations.
+4. **Single Grid Phase Modeling**: The system models a balanced single-phase equivalent grid bus ($230\text{V}$ line voltage); multi-phase unbalance estimation is not modeled.
 
