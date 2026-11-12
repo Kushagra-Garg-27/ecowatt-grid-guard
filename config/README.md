@@ -13,3 +13,4 @@ This directory contains reference and default configuration schemas for EcoWatt 
 
 ## Environment Overrides
 To override defaults, copy `.env.example` to `.env` in the project root or `backend/` and modify desired environment variables.
+

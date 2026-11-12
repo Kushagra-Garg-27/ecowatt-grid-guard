@@ -23,8 +23,10 @@ from backend.app.sensors.coap_client import CoAPTelemetryClient
 from backend.app.sensors.virtual_sensor import VirtualSensorManager
 from backend.app.simulation.engine import simulation_engine
 from backend.app.actuators.virtual_actuator import actuator_manager
+from backend.app.actuators.restoration import restoration_engine
 from backend.app.optimizer.engine import optimization_engine
 from backend.app.gateway.aggregator import edge_aggregator
+from backend.app.simulation.profiles import generate_time_of_use_tariff
 
 # Configure Logging
 logging.basicConfig(
@@ -87,13 +89,25 @@ async def live_iot_simulation_loop():
                     hvac_level=1.0,
                 )
 
-            # Check for demand violations and trigger closed-loop control
+            # 1. Periodically check sensor health timeouts (mark DEGRADED/FAULTED if heartbeats cease)
+            edge_aggregator.check_sensor_health_timeouts(timeout_seconds=15.0)
+
+            # 2. Check for demand violations and trigger closed-loop control or progressive restoration
             total_power = actuator_manager.get_total_building_power()
+            tariffs = generate_time_of_use_tariff(96)
+            current_tariff = float(tariffs[step % 96])
+
             if total_power > optimization_engine.demand_threshold_kw:
-                tariffs = [0.24] * 96
                 optimization_engine.run_optimization_cycle(
-                    current_tariff=0.35,
+                    current_tariff=current_tariff,
                     scenario_id=simulation_engine.current_live_scenario,
+                )
+            elif total_power <= (optimization_engine.target_demand_kw - 0.20):
+                # Progressive restoration if demand is safely below target by at least hysteresis margin
+                restoration_engine.evaluate_and_restore(
+                    current_demand_kw=total_power,
+                    target_demand_kw=optimization_engine.target_demand_kw,
+                    current_tariff=current_tariff,
                 )
 
             # Publish live building demand to MQTT

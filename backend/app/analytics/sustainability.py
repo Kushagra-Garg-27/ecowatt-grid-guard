@@ -8,7 +8,7 @@ Section 18 Formulation:
   - Peak demand reduction percentage
 """
 import numpy as np
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from backend.app.schemas.analytics import DailyAnalyticsSummary, IntervalMetric
 from backend.app.simulation.profiles import get_time_string
 
@@ -30,6 +30,7 @@ class SustainabilityCalculator:
         critical_interruptions_count: int,
         threshold_kw: float = 7.00,
         interval_hours: float = 0.25,  # 15 minutes = 0.25h
+        shifted_energy_profile: Optional[np.ndarray] = None,
     ) -> DailyAnalyticsSummary:
         """
         Derive full daily metrics from 96-step time series.
@@ -72,7 +73,11 @@ class SustainabilityCalculator:
                     baseline_carbon_g=round(float(baseline_carbon_arr[s]), 1),
                     optimized_carbon_g=round(float(optimized_carbon_arr[s]), 1),
                     carbon_avoided_g=round(float(carbon_avoided_arr[s]), 1),
-                    shifted_energy_kwh=round(shifted_energy_kwh / steps, 3) if shifted_energy_kwh > 0 else 0.0,
+                    shifted_energy_kwh=(
+                        round(float(shifted_energy_profile[s]), 3)
+                        if shifted_energy_profile is not None
+                        else (round(shifted_energy_kwh / steps, 3) if shifted_energy_kwh > 0 else 0.0)
+                    ),
                     curtailed_loads_count=1 if (baseline_power_kw[s] - optimized_power_kw[s]) > 0.05 else 0,
                     threshold_exceeded_baseline=bool(thresh_exceed_base[s]),
                     threshold_exceeded_optimized=bool(thresh_exceed_opt[s]),

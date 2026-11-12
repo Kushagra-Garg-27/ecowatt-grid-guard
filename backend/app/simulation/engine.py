@@ -238,6 +238,7 @@ class SimulationEngine:
             critical_interruptions_count=critical_interruptions,
             threshold_kw=threshold_kw,
             interval_hours=self.interval_hours,
+            shifted_energy_profile=(optimized_deferrable_kw * self.interval_hours),
         )
 
         # 6. Persist Dataset to CSV for Reproducibility
