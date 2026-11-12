@@ -1,0 +1,55 @@
+services:
+  # Eclipse Mosquitto MQTT Broker
+  mosquitto:
+    image: eclipse-mosquitto:2.0
+    container_name: ecowatt-mosquitto
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    restart: unless-stopped
+    command: mosquitto -c /mosquitto-no-auth.conf
+
+  # Node-RED Visual IoT Integration
+  nodered:
+    image: nodered/node-red:latest
+    container_name: ecowatt-nodered
+    ports:
+      - "1880:1880"
+    volumes:
+      - ./nodered/flows.json:/data/flows.json
+    depends_on:
+      - mosquitto
+    restart: unless-stopped
+
+  # Python Edge Gateway & Backend
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: ecowatt-backend
+    ports:
+      - "8000:8000"
+      - "5683:5683/udp"
+    environment:
+      - MQTT_BROKER_HOST=mosquitto
+      - MQTT_BROKER_PORT=1883
+      - MQTT_EMBEDDED_BROKER=false
+      - COAP_HOST=0.0.0.0
+      - COAP_PORT=5683
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      - mosquitto
+    restart: unless-stopped
+
+  # React Frontend Dashboard
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: ecowatt-frontend
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+    restart: unless-stopped

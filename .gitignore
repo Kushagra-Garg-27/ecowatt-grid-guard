@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+*.egg-info/
+dist/
+build/
+
+# Database & SQLite
+*.db
+*.sqlite3
+!data/ecowatt.db.example
+
+# Node / Frontend
+node_modules/
+frontend/dist/
+frontend/node_modules/
+.npm
+*.tsbuildinfo
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Pytest & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
