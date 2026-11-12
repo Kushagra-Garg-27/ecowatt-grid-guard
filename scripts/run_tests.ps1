@@ -2,3 +2,4 @@
 Write-Host "Running EcoWatt Grid Guard Automated Pytest Suite..." -ForegroundColor Green
 Set-Location -Path "$PSScriptRoot\.."
 py -3.12 -m pytest backend/tests -v
+

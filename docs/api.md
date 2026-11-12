@@ -218,3 +218,4 @@ Clients connect to `/ws/live` to receive real-time JSON packets emitted every 2 
   "active_alarms": 0
 }
 ```
+

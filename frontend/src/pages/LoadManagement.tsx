@@ -222,3 +222,4 @@ export const LoadManagement: React.FC<LoadManagementProps> = ({ loads, onRefresh
     </div>
   );
 };
+

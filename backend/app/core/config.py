@@ -54,7 +54,9 @@ class Settings(BaseSettings):
     DEFAULT_DEMAND_THRESHOLD_KW: float = 7.00
     DEFAULT_RESERVE_MARGIN_KW: float = 0.20
     MAX_REFERENCE_POWER_KW: float = 10.00
-    MAX_REFERENCE_TARIFF: float = 0.50  # $/kWh reference maximum
+    MAX_REFERENCE_TARIFF: float = 15.00  # INR (₹/kWh) reference maximum
+    CURRENCY_SYMBOL: str = "₹"
+    CURRENCY_CODE: str = "INR"
 
     # Load Priority Score Weights (must sum to 1.0)
     WEIGHT_SUITABILITY: float = 0.40
@@ -89,3 +91,4 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+

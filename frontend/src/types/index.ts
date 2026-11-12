@@ -143,3 +143,4 @@ export interface ThresholdConfig {
   reserve_margin_kw: number;
   target_demand_kw?: number;
 }
+

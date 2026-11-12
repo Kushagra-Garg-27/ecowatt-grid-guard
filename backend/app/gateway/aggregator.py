@@ -203,3 +203,4 @@ class EdgeAggregator:
 
 # Global singleton instance for edge gateway
 edge_aggregator = EdgeAggregator()
+

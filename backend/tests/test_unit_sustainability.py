@@ -82,3 +82,4 @@ def test_threshold_exceedance_duration():
     assert summary.threshold_exceedance_minutes_baseline == 30
     # 0 intervals exceeding in optimized
     assert summary.threshold_exceedance_minutes_optimized == 0
+

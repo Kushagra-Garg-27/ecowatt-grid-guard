@@ -266,3 +266,4 @@ async def get_iot_monitor():
         },
         "optimization_events": optimization_engine.optimization_events[-20:],
     }
+

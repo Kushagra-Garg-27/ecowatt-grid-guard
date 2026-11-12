@@ -195,3 +195,4 @@ export const BuildingZones: React.FC<BuildingZonesProps> = ({ zones, loads }) =>
     </div>
   );
 };
+

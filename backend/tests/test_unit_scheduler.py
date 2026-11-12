@@ -46,3 +46,4 @@ def test_scheduler_deadline_and_energy_delivery():
 
     # Verify financial savings
     assert result.cost_saved_by_shifting > 0.0
+

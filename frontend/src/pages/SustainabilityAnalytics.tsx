@@ -165,10 +165,10 @@ export const SustainabilityAnalytics: React.FC<SustainabilityAnalyticsProps> = (
             <DollarSign className="h-4 w-4 text-amber-400" />
           </div>
           <div className="text-2xl font-bold text-white">
-            ${summary.net_cost_saved.toFixed(2)} <span className="text-xs text-slate-400 font-normal">USD</span>
+            ₹{summary.net_cost_saved.toFixed(2)} <span className="text-xs text-slate-400 font-normal">INR</span>
           </div>
           <div className="flex items-center justify-between text-xs border-t border-slate-800/80 pt-2">
-            <span className="text-slate-400">Base Cost: ${summary.baseline_total_cost.toFixed(2)}</span>
+            <span className="text-slate-400">Base Cost: ₹{summary.baseline_total_cost.toFixed(2)}</span>
             <span className="text-amber-400 font-bold">-{summary.cost_saved_pct.toFixed(1)}%</span>
           </div>
         </div>
@@ -252,3 +252,4 @@ export const SustainabilityAnalytics: React.FC<SustainabilityAnalyticsProps> = (
     </div>
   );
 };
+

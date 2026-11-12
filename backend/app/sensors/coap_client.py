@@ -61,3 +61,4 @@ class CoAPTelemetryClient:
             except Exception as e:
                 logger.debug(f"Error shutting down CoAP client context: {e}")
             self.client_context = None
+

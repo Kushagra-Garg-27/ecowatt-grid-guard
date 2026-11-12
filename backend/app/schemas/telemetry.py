@@ -52,3 +52,4 @@ class ZoneSummary(BaseModel):
     hvac_state: float
     sensor_health: str
     timestamp: datetime
+

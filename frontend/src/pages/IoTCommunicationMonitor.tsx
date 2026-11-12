@@ -225,3 +225,4 @@ export const IoTCommunicationMonitor: React.FC = () => {
     </div>
   );
 };
+

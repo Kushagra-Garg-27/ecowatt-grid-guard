@@ -16,45 +16,46 @@ def get_time_string(step: int, interval_minutes: int = 15) -> str:
 
 def generate_time_of_use_tariff(steps: int = 96) -> np.ndarray:
     """
-    Time-of-Use (ToU) Electricity Tariff ($/kWh):
-    - Off-Peak (22:00 - 06:00): $0.12 / kWh
-    - Mid-Peak / Shoulder (06:00 - 14:00, 20:00 - 22:00): $0.24 / kWh
-    - On-Peak (14:00 - 20:00): $0.45 / kWh (Reflects grid congestion)
+    Time-of-Use (ToU) Electricity Tariff in Indian Rupees (₹/kWh):
+    - Off-Peak (22:00 - 06:00): ₹4.50 / kWh (Baseload overnight incentive)
+    - Normal / Shoulder (06:00 - 14:00, 20:00 - 22:00): ₹7.50 / kWh
+    - On-Peak (14:00 - 20:00): ₹12.00 / kWh (Peak demand surcharge)
     """
     tariffs = np.zeros(steps)
     for s in range(steps):
         hour = (s * 15) / 60.0
         if 14.0 <= hour < 20.0:
-            tariffs[s] = 0.45  # Peak
+            tariffs[s] = 12.00  # On-Peak
         elif (6.0 <= hour < 14.0) or (20.0 <= hour < 22.0):
-            tariffs[s] = 0.24  # Shoulder
+            tariffs[s] = 7.50   # Shoulder
         else:
-            tariffs[s] = 0.12  # Off-peak
+            tariffs[s] = 4.50   # Off-Peak
     return tariffs
 
 
 def generate_grid_carbon_intensity(steps: int = 96) -> np.ndarray:
     """
-    Time-varying Grid Carbon Intensity (gCO2/kWh):
-    - Night (00:00 - 06:00): Moderate wind baseline (~250 g/kWh)
-    - Midday (10:00 - 15:00): High solar penetration (~180 g/kWh)
-    - Evening Peak (17:00 - 21:00): Peaker gas plants (~520 g/kWh)
+    Time-varying Grid Carbon Intensity (gCO2/kWh) calibrated to Indian CEA Grid Baseline:
+    - Solar Midday (11:00 - 15:00): ~580 gCO2/kWh (High solar generation)
+    - Evening Peak (17:00 - 21:00): ~880 gCO2/kWh (Thermal coal/gas peakers)
+    - Morning Ramp (07:00 - 10:00): ~760 gCO2/kWh
+    - Overnight Baseline (22:00 - 06:00): ~710 gCO2/kWh
     """
     carbon = np.zeros(steps)
     for s in range(steps):
         hour = (s * 15) / 60.0
         if 11.0 <= hour < 15.0:
             # Solar peak depression
-            base = 180.0 + 15.0 * np.sin((hour - 11.0) / 4.0 * np.pi)
+            base = 580.0 + 25.0 * np.sin((hour - 11.0) / 4.0 * np.pi)
         elif 17.0 <= hour < 21.0:
-            # Evening fossil peaker surge
-            base = 510.0 + 30.0 * np.sin((hour - 17.0) / 4.0 * np.pi)
+            # Evening peaker thermal surge
+            base = 880.0 + 35.0 * np.sin((hour - 17.0) / 4.0 * np.pi)
         elif 7.0 <= hour < 10.0:
             # Morning ramp
-            base = 380.0 + 20.0 * np.sin((hour - 7.0) / 3.0 * np.pi)
+            base = 760.0 + 20.0 * np.sin((hour - 7.0) / 3.0 * np.pi)
         else:
-            # Baseline overnight / shoulder
-            base = 240.0 + 10.0 * np.cos(hour / 24.0 * 2 * np.pi)
+            # Overnight baseline
+            base = 710.0 + 15.0 * np.cos(hour / 24.0 * 2 * np.pi)
         carbon[s] = round(base, 1)
     return carbon
 
@@ -141,3 +142,4 @@ def generate_zone_occupancy_profiles(steps: int = 96, seed: int = 42) -> Dict[st
         occ["server_room"][s] = max(0, min(3, srv_occ))
 
     return occ
+

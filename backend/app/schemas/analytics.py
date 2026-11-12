@@ -75,3 +75,4 @@ class BuildingLiveStatus(BaseModel):
     shifted_loads_count: int
     critical_load_protected: bool
     active_scenario: str
+

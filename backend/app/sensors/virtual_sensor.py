@@ -145,3 +145,4 @@ class VirtualSensorManager:
                 node.health_status = "FAULTED"
             else:
                 node.health_status = "HEALTHY"
+

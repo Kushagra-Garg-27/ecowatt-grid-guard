@@ -111,8 +111,8 @@ export const OverviewDashboard: React.FC<OverviewProps> = ({ status, zones, summ
             <DollarSign className="h-4 w-4 text-amber-400" />
           </div>
           <div className="mt-2 flex items-baseline space-x-2">
-            <span className="text-3xl font-bold tracking-tight text-white">${status.estimated_cost_today.toFixed(2)}</span>
-            <span className="text-slate-400 text-sm">USD</span>
+            <span className="text-3xl font-bold tracking-tight text-white">₹{status.estimated_cost_today.toFixed(2)}</span>
+            <span className="text-slate-400 text-sm">INR</span>
           </div>
           <div className="mt-3 flex items-center justify-between text-xs text-slate-400 border-t border-slate-800/80 pt-2.5">
             <span>Energy Consumed</span>
@@ -279,3 +279,4 @@ export const OverviewDashboard: React.FC<OverviewProps> = ({ status, zones, summ
     </div>
   );
 };
+

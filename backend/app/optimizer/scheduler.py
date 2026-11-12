@@ -58,16 +58,18 @@ class PeakLoadScheduler:
         base_demand: np.ndarray,
         already_scheduled_kw: Optional[np.ndarray] = None,
         threshold_kw: float = settings.DEFAULT_DEMAND_THRESHOLD_KW,
+        target_demand_kw: Optional[float] = None,
         unmanaged_start_step: Optional[int] = None,
     ) -> ScheduledWindow:
         """
         Schedule deferrable load to minimize combined cost and carbon footprint
-        while respecting deadline and avoiding threshold exceedances.
+        while respecting deadline and avoiding target demand exceedances.
         Accounts for already scheduled deferrable loads to prevent stacking.
         """
         steps = len(tariffs)
         earliest = max(0, min(steps - 1, earliest_step))
         deadline = max(earliest, min(steps - 1, deadline_step))
+        limit_kw = target_demand_kw if target_demand_kw is not None else (threshold_kw - settings.DEFAULT_RESERVE_MARGIN_KW)
 
         step_hours = 0.25
         kwh_per_step = rated_power_kw * step_hours
@@ -92,10 +94,10 @@ class PeakLoadScheduler:
         candidate_scores = []
         for s in range(earliest, deadline + 1):
             projected_total = base_demand[s] + existing_kw[s] + rated_power_kw
-            # Severe penalty if scheduling breaches threshold
-            penalty = 100.0 if projected_total > threshold_kw else 0.0
+            # Severe penalty if scheduling breaches target demand
+            penalty = 100.0 if projected_total > limit_kw else 0.0
             # Additional small penalty for higher demand to smooth load
-            level_penalty = (projected_total / threshold_kw) * 0.5
+            level_penalty = (projected_total / limit_kw) * 0.5
             score = composite_index[s] + penalty + level_penalty
             candidate_scores.append((s, score, projected_total))
 

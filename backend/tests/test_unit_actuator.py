@@ -59,3 +59,4 @@ def test_simulated_actuator_failure():
     # Reset
     mgr.set_fault_injection(None)
     assert act.status == "ONLINE"
+

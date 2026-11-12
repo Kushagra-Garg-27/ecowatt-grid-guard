@@ -65,3 +65,4 @@ async def test_real_coap_telemetry_flow():
     finally:
         await client.close()
         await server.stop()
+

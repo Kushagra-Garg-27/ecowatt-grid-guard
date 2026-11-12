@@ -69,3 +69,4 @@ def test_weight_normalization():
     calc = LPSCalculator(w_s=2.0, w_o=1.0, w_p=1.0, w_t=1.0)
     assert abs((calc.w_s + calc.w_o + calc.w_p + calc.w_t) - 1.0) < 1e-4
     assert abs(calc.w_s - 0.40) < 1e-3
+

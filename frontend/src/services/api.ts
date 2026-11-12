@@ -116,3 +116,4 @@ export async function fetchIoTMonitor(): Promise<any> {
   const res = await fetch(`${API_BASE}/iot/monitor`);
   return res.json();
 }
+

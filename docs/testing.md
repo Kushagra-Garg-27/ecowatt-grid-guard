@@ -49,3 +49,4 @@
 | `test_peak_demand_demonstration_scenario` | Baseline peak $\approx 8.60\text{ kW}$, target $\le 7.00\text{ kW}$, critical interruptions $= 0$ | Base peak: $8.60\text{ kW}$, Opt peak: $6.93\text{ kW}$, Red: $19.5\%$, Crit interruptions: $0$ | **PASSED** |
 | `test_all_ten_scenarios_execute_with_zero_critical_interruptions` | All 10 scenarios complete with 0 critical interruptions | 10/10 scenarios passed with $0$ critical interruptions | **PASSED** |
 | `test_failed_actuator_acknowledgement_scenario` | Missing ack triggers remeasurement and secondary curtailment | Failures detected, remeasured, and mitigated | **PASSED** |
+

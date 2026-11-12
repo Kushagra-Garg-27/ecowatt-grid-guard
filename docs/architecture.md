@@ -141,3 +141,4 @@ The building models 19 distinct electrical loads classified into three strict op
 | Ack Failure Handling | Missing ack $\to$ mark uncertain $\to$ remeasure $\to$ curtail next load | `backend/app/optimizer/engine.py` |
 | Progressive Restoration | Hysteresis buffer $\to$ restore loads in ascending LPS order | `backend/app/actuators/restoration.py` |
 | Sustainability Accounting | Rigorous hourly energy, ToU cost, and time-varying carbon calculation | `backend/app/analytics/sustainability.py` |
+

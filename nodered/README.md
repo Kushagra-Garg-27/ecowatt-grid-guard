@@ -49,3 +49,4 @@ The flow integrates directly with the running EcoWatt MQTT broker (`127.0.0.1:18
 - Ensure the EcoWatt backend is running (port `8000` / MQTT on `1883`).
 - Open the Node-RED **Debug** tab (bug icon on the right sidebar).
 - You will see live telemetry, demand evaluation, actuator acknowledgements, and safety audit logs streaming directly from the Python edge gateway.
+

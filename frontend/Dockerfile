@@ -14,3 +14,4 @@ COPY --from=builder /app/dist /usr/share/nginx/html
 EXPOSE 80 5173
 
 CMD ["nginx", "-g", "daemon off;"]
+

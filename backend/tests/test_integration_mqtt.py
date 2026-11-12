@@ -49,3 +49,4 @@ async def test_mqtt_pub_sub_pipeline():
 
     mqtt_mgr.stop()
     await broker.stop()
+

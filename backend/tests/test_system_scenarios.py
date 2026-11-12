@@ -46,3 +46,4 @@ def test_failed_actuator_acknowledgement_scenario():
     assert summary.critical_load_interruptions == 0
     # Actuator failure counter recorded failures
     assert summary.total_actuator_failures >= 1
+

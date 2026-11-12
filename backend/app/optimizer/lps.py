@@ -88,3 +88,4 @@ class LPSCalculator:
 
 # Global default instance
 lps_calculator = LPSCalculator()
+

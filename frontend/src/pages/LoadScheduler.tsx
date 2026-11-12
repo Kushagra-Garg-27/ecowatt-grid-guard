@@ -44,8 +44,8 @@ export const LoadScheduler: React.FC<LoadSchedulerProps> = ({ summary }) => {
       deadline: '21:00 PM',
       baseline_window: '17:00 - 20:00 (Evening Peak)',
       scheduled_window: '11:30 - 14:30 (Solar Valley)',
-      cost_saved: '$1.38',
-      carbon_avoided: '2.14 kg CO2',
+      cost_saved: '₹28.40',
+      carbon_avoided: '1.98 kg CO2',
       status: 'OPTIMALLY_SHIFTED',
     },
     {
@@ -59,8 +59,8 @@ export const LoadScheduler: React.FC<LoadSchedulerProps> = ({ summary }) => {
       deadline: '20:00 PM',
       baseline_window: '17:00 - 19:00 (Evening Peak)',
       scheduled_window: '07:00 - 09:00 (Morning Off-Peak)',
-      cost_saved: '$0.63',
-      carbon_avoided: '0.86 kg CO2',
+      cost_saved: '₹13.50',
+      carbon_avoided: '0.84 kg CO2',
       status: 'OPTIMALLY_SHIFTED',
     },
     {
@@ -74,8 +74,8 @@ export const LoadScheduler: React.FC<LoadSchedulerProps> = ({ summary }) => {
       deadline: '22:00 PM',
       baseline_window: '17:30 - 20:00 (Evening Peak)',
       scheduled_window: '12:00 - 14:30 (Solar Valley)',
-      cost_saved: '$0.52',
-      carbon_avoided: '0.78 kg CO2',
+      cost_saved: '₹11.25',
+      carbon_avoided: '0.75 kg CO2',
       status: 'OPTIMALLY_SHIFTED',
     },
   ];
@@ -195,9 +195,9 @@ export const LoadScheduler: React.FC<LoadSchedulerProps> = ({ summary }) => {
             <div>
               <h3 className="text-sm font-semibold text-white flex items-center space-x-1.5">
                 <DollarSign className="h-4 w-4 text-amber-400" />
-                <span>Time-of-Use Electricity Tariff ($/kWh)</span>
+                <span>Time-of-Use Electricity Tariff (₹/kWh)</span>
               </h3>
-              <p className="text-xs text-slate-400">Peak tariff ($0.45/kWh) active between 14:00 - 20:00</p>
+              <p className="text-xs text-slate-400">Peak tariff (₹12.00/kWh) active between 14:00 - 20:00</p>
             </div>
           </div>
           <div className="h-56">
@@ -205,10 +205,10 @@ export const LoadScheduler: React.FC<LoadSchedulerProps> = ({ summary }) => {
               <LineChart data={profileData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
                 <XAxis dataKey="time" stroke="#475569" fontSize={10} interval={11} />
-                <YAxis stroke="#475569" fontSize={10} unit=" $" domain={[0, 0.55]} />
+                <YAxis stroke="#475569" fontSize={10} unit=" ₹" domain={[0, 15]} />
                 <Tooltip
                   contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '0.75rem', fontSize: '11px' }}
-                  formatter={(val: any) => [`$${parseFloat(val).toFixed(2)} / kWh`, 'Tariff']}
+                  formatter={(val: any) => [`₹${parseFloat(val).toFixed(2)} / kWh`, 'Tariff']}
                 />
                 <Line type="stepAfter" dataKey="tariff" stroke="#f59e0b" strokeWidth={2} dot={false} />
               </LineChart>
@@ -222,9 +222,9 @@ export const LoadScheduler: React.FC<LoadSchedulerProps> = ({ summary }) => {
             <div>
               <h3 className="text-sm font-semibold text-white flex items-center space-x-1.5">
                 <Leaf className="h-4 w-4 text-emerald-400" />
-                <span>Grid Carbon Intensity (gCO2/kWh)</span>
+                <span>Grid Carbon Intensity (gCO2/kWh) — CEA Baseline</span>
               </h3>
-              <p className="text-xs text-slate-400">Low carbon solar window (11:00 - 15:00 ~180 g/kWh)</p>
+              <p className="text-xs text-slate-400">Low carbon solar window (11:00 - 15:00 ~580 g/kWh)</p>
             </div>
           </div>
           <div className="h-56">
@@ -232,7 +232,7 @@ export const LoadScheduler: React.FC<LoadSchedulerProps> = ({ summary }) => {
               <LineChart data={profileData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
                 <XAxis dataKey="time" stroke="#475569" fontSize={10} interval={11} />
-                <YAxis stroke="#475569" fontSize={10} unit=" g" domain={[100, 600]} />
+                <YAxis stroke="#475569" fontSize={10} unit=" g" domain={[400, 1000]} />
                 <Tooltip
                   contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '0.75rem', fontSize: '11px' }}
                   formatter={(val: any) => [`${parseFloat(val).toFixed(1)} gCO2/kWh`, 'Carbon Intensity']}
@@ -246,3 +246,4 @@ export const LoadScheduler: React.FC<LoadSchedulerProps> = ({ summary }) => {
     </div>
   );
 };
+

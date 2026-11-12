@@ -167,3 +167,4 @@ class SystemErrorModel(Base):
     severity = Column(String(20), default="WARNING")  # INFO, WARNING, ERROR, CRITICAL
     message = Column(String(255), nullable=False)
     details_json = Column(Text, nullable=True)
+

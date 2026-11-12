@@ -403,3 +403,4 @@ SCENARIO_CONFIGS: Dict[str, Dict[str, Any]] = {
         "beta_cost_weight": 0.60,
     },
 }
+

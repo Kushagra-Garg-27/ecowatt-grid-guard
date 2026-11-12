@@ -8,3 +8,4 @@ Start-Process powershell -ArgumentList "-NoExit", "-File", "$PSScriptRoot\start_
 Write-Host "Services started:" -ForegroundColor Cyan
 Write-Host "  Backend API & Swagger: http://127.0.0.1:8000/docs"
 Write-Host "  React Dashboard:       http://localhost:5173"
+

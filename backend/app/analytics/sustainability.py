@@ -131,3 +131,4 @@ class SustainabilityCalculator:
             critical_load_interruptions=critical_interruptions_count,
             intervals=intervals,
         )
+

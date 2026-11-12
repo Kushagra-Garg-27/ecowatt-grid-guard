@@ -46,3 +46,4 @@ The web dashboard is organized into 7 functional views:
 
 - **Switching Scenarios**: Use the scenario dropdown in the top navigation bar to select any of the 10 scenarios (e.g. *Peak-Demand Event*, *High Tariff Surge*, *Low Occupancy*, or *Failed Actuator Ack*).
 - **Resetting System**: Click the reset icon in the navbar to restore all actuators to 100% nominal baseline operation.
+

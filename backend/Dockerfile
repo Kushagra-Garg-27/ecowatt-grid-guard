@@ -15,3 +15,4 @@ COPY data/ /app/data/
 EXPOSE 8000 5683/udp
 
 CMD ["python", "-m", "uvicorn", "backend.app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+

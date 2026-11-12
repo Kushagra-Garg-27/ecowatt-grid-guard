@@ -40,3 +40,4 @@ Reflecting real-world renewable energy penetration:
 | `failed_actuator_ack` | Actuator Timeout & Recovery | Actuator on `lab_sockets_aux` fails to acknowledge; gateway detects timeout, remeasures actual power, and curtails next load. |
 | `sensor_comm_failure` | Sensor Packet Loss | Evaluates gateway fallback and last-known-good estimation during packet drops. |
 | `demand_recovery_restoration`| Demand Recovery | Demonstrates progressive restoration using hysteresis in ascending LPS order. |
+

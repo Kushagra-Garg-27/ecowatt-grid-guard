@@ -98,3 +98,4 @@ class OptimizationResponse(BaseModel):
     target_achieved: bool
     actions_taken: List[OptimizationActionDetail]
     iterations_run: int
+

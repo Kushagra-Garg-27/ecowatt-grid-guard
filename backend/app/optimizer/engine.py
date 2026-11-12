@@ -173,7 +173,8 @@ class MultiStageOptimizationEngine:
         # Final state verification
         final_demand = actuator_manager.get_total_building_power()
         final_reduction = round(initial_demand - final_demand, 3)
-        target_achieved = final_demand <= (self.target_demand_kw + 0.05)
+        target_achieved = final_demand <= (self.target_demand_kw + 0.01)
+        status_label = "TARGET_ACHIEVED" if target_achieved else "TARGET_INFEASIBLE_LOADS_EXHAUSTED"
 
         event_result = {
             "event_id": event_id,
@@ -188,7 +189,7 @@ class MultiStageOptimizationEngine:
             "target_achieved": target_achieved,
             "actions_taken": actions_taken,
             "iterations_run": iteration,
-            "status": "TARGET_ACHIEVED" if target_achieved else "PARTIALLY_MITIGATED",
+            "status": status_label,
         }
 
         self.optimization_events.append(event_result)
@@ -266,3 +267,4 @@ class MultiStageOptimizationEngine:
 
 
 optimization_engine = MultiStageOptimizationEngine()
+

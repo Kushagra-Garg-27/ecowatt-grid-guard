@@ -85,3 +85,4 @@ def test_api_weights_configuration():
         json={"w_s": 0.8, "w_o": 0.8, "w_p": 0.8, "w_t": 0.8},
     )
     assert res_bad.status_code == 422  # Validation error
+
