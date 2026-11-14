@@ -1,18 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Sliders,
   Play,
-  RotateCcw,
   Zap,
   Target,
   ShieldCheck,
   CheckCircle2,
   AlertTriangle,
-  History,
-  TrendingDown,
   Info,
 } from 'lucide-react';
-import { BuildingStatus, LoadItem, OptimizationResponse, LPSWeights, ThresholdConfig } from '../types';
+import { BuildingStatus, LoadItem, OptimizationResponse, LPSWeights } from '../types';
 import {
   runOptimization,
   fetchThresholdConfig,
@@ -20,6 +16,7 @@ import {
   fetchLPSWeights,
   updateLPSWeights,
 } from '../services/api';
+import { SciFiCard } from '@/components/ui/moving-dot-card';
 
 interface OptimizationCentreProps {
   status: BuildingStatus | null;
@@ -126,59 +123,59 @@ export const OptimizationCentre: React.FC<OptimizationCentreProps> = ({ status, 
         </div>
       )}
 
-      {/* Primary Metrics Row (Bento Surface Cards) */}
+      {/* Primary Metrics Row (Moving Dot Sci-Fi Cards) */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
-        <div className="bento-surface p-3 space-y-1">
+        <SciFiCard accent="cyan" dotDuration="7s" innerClassName="p-3 space-y-1">
           <div className="text-[10px] font-mono uppercase text-[#71717A]">CURRENT TOTAL DEMAND</div>
-          <div className="text-xl font-mono font-bold tabular-nums text-[#FAFAFA]">
+          <div className="text-2xl font-mono font-bold tabular-nums text-transparent bg-clip-text bg-[linear-gradient(45deg,#fff,#00aaff)]">
             {currentPower.toFixed(2)} <span className="text-[10px] text-[#71717A] font-normal">kW</span>
           </div>
           <div className="text-[9px] font-mono text-[#71717A]">P_total from 5 zones</div>
-        </div>
+        </SciFiCard>
 
-        <div className="bento-surface p-3 space-y-1">
+        <SciFiCard accent="rose" dotDuration="8s" innerClassName="p-3 space-y-1">
           <div className="text-[10px] font-mono uppercase text-[#71717A]">CONTRACT THRESHOLD</div>
-          <div className="text-xl font-mono font-bold tabular-nums text-rose-400">
+          <div className="text-2xl font-mono font-bold tabular-nums text-transparent bg-clip-text bg-[linear-gradient(45deg,#fff,#f43f5e)]">
             {threshold.toFixed(2)} <span className="text-[10px] text-[#71717A] font-normal">kW</span>
           </div>
           <div className="text-[9px] font-mono text-[#71717A]">Utility ceiling limit</div>
-        </div>
+        </SciFiCard>
 
-        <div className="bento-surface p-3 space-y-1">
+        <SciFiCard accent="cyan" dotDuration="9s" innerClassName="p-3 space-y-1">
           <div className="text-[10px] font-mono uppercase text-[#71717A]">TARGET DEMAND</div>
-          <div className="text-xl font-mono font-bold tabular-nums text-cyan-400">
+          <div className="text-2xl font-mono font-bold tabular-nums text-transparent bg-clip-text bg-[linear-gradient(45deg,#fff,#00aaff)]">
             {target.toFixed(2)} <span className="text-[10px] text-[#71717A] font-normal">kW</span>
           </div>
           <div className="text-[9px] font-mono text-[#71717A]">P_threshold - P_margin</div>
-        </div>
+        </SciFiCard>
 
-        <div className="bento-surface p-3 space-y-1">
+        <SciFiCard accent="amber" dotDuration="10s" innerClassName="p-3 space-y-1">
           <div className="text-[10px] font-mono uppercase text-[#71717A]">REQUIRED MITIGATION</div>
-          <div className="text-xl font-mono font-bold tabular-nums text-amber-400">
+          <div className="text-2xl font-mono font-bold tabular-nums text-transparent bg-clip-text bg-[linear-gradient(45deg,#fff,#f59e0b)]">
             {requiredReduction.toFixed(2)} <span className="text-[10px] text-[#71717A] font-normal">kW</span>
           </div>
           <div className="text-[9px] font-mono text-[#71717A]">max(0, P_total - P_target)</div>
-        </div>
+        </SciFiCard>
       </div>
 
-      {/* LPS Equation Info Box */}
-      <div className="bento-surface p-3 space-y-2">
+      {/* LPS Equation Info Box (SciFiCard) */}
+      <SciFiCard accent="cyan" dotDuration="12s" innerClassName="p-3 space-y-2">
         <div className="flex items-center space-x-2 text-xs font-mono font-semibold text-emerald-400">
           <Info className="h-3.5 w-3.5" />
           <span>LOAD PRIORITY SCORE (LPS) MULTI-CRITERIA FORMULATION</span>
         </div>
-        <p className="text-[11px] font-mono text-[#A1A1AA] bg-[#121215] p-2 rounded border border-[#27272A] overflow-x-auto">
+        <p className="text-[11px] font-mono text-[#A1A1AA] bg-[#121215]/80 p-2 rounded border border-[#27272A] overflow-x-auto">
           LPS_k(t) = w_s &bull; S_k + w_o &bull; (1 - Occ_j(t) / Occ_max,j) + w_p &bull; (P_k(t) / P_max) + w_t &bull; (Tariff(t) / Tariff_max)
         </p>
         <p className="text-[10px] font-mono text-[#71717A]">
           Critical loads have S_k = 0 and are mathematically excluded from curtailment. Higher LPS indicates higher suitability for shedding without affecting occupant safety or critical operations.
         </p>
-      </div>
+      </SciFiCard>
 
       {/* Two Column Configuration: Thresholds & Weights */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5">
         {/* Threshold Configuration */}
-        <div className="bento-surface p-3.5 space-y-3 font-mono">
+        <SciFiCard accent="rose" dotDuration="11s" innerClassName="p-3.5 space-y-3 font-mono">
           <div className="flex items-center justify-between">
             <h3 className="text-xs font-mono font-semibold text-[#FAFAFA] uppercase">DEMAND THRESHOLD CONFIG</h3>
             <button
@@ -202,7 +199,7 @@ export const OptimizationCentre: React.FC<OptimizationCentreProps> = ({ status, 
                 step="0.1"
                 value={thresholdInput}
                 onChange={(e) => setThresholdInput(parseFloat(e.target.value))}
-                className="w-full accent-emerald-500 cursor-pointer"
+                className="w-full accent-rose-500 cursor-pointer"
               />
             </div>
 
@@ -222,17 +219,17 @@ export const OptimizationCentre: React.FC<OptimizationCentreProps> = ({ status, 
               />
             </div>
 
-            <div className="p-2 bg-[#121215] rounded border border-[#27272A] text-[10px] flex justify-between tabular-nums">
+            <div className="p-2 bg-[#121215]/80 rounded border border-[#27272A] text-[10px] flex justify-between tabular-nums">
               <span className="text-[#71717A]">RESULTING P_TARGET:</span>
               <span className="font-bold text-cyan-400">
                 {Math.max(0, thresholdInput - marginInput).toFixed(2)} kW
               </span>
             </div>
           </div>
-        </div>
+        </SciFiCard>
 
         {/* Multi-Criteria Weights */}
-        <div className="bento-surface p-3.5 space-y-3 font-mono">
+        <SciFiCard accent="emerald" dotDuration="11s" innerClassName="p-3.5 space-y-3 font-mono">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-xs font-mono font-semibold text-[#FAFAFA] uppercase">LPS CRITERIA WEIGHTS</h3>
@@ -314,11 +311,11 @@ export const OptimizationCentre: React.FC<OptimizationCentreProps> = ({ status, 
               />
             </div>
           </div>
-        </div>
+        </SciFiCard>
       </div>
 
       {/* Stage B Eligible Load Curtailment Queue (Descending LPS) */}
-      <div className="bento-surface overflow-hidden space-y-2">
+      <SciFiCard accent="cyan" dotDuration="13s" innerClassName="overflow-hidden space-y-2">
         <div className="p-3 pb-0 flex items-center justify-between font-mono">
           <div>
             <h3 className="text-xs font-semibold uppercase text-[#FAFAFA]">STAGE B: ELIGIBLE CURTAILMENT QUEUE (DESCENDING LPS)</h3>
@@ -362,11 +359,11 @@ export const OptimizationCentre: React.FC<OptimizationCentreProps> = ({ status, 
             </tbody>
           </table>
         </div>
-      </div>
+      </SciFiCard>
 
       {/* Stage D Actuation Results / Execution History */}
       {lastOptResult && (
-        <div className="bento-surface p-3.5 space-y-3 font-mono">
+        <SciFiCard accent="emerald" dotDuration="10s" innerClassName="p-3.5 space-y-3 font-mono">
           <div className="flex items-center justify-between border-b border-[#27272A] pb-2">
             <div>
               <h3 className="text-xs font-semibold text-[#FAFAFA] flex items-center space-x-1.5">
@@ -387,25 +384,25 @@ export const OptimizationCentre: React.FC<OptimizationCentreProps> = ({ status, 
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs tabular-nums">
-            <div className="bg-[#121215] p-2 rounded border border-[#27272A]">
+            <div className="bg-[#121215]/80 p-2 rounded border border-[#27272A]">
               <span className="text-[#71717A] text-[10px]">INITIAL DEMAND</span>
               <div className="font-bold text-[#FAFAFA] text-sm mt-0.5">
                 {lastOptResult.initial_demand_kw.toFixed(2)} kW
               </div>
             </div>
-            <div className="bg-[#121215] p-2 rounded border border-[#27272A]">
+            <div className="bg-[#121215]/80 p-2 rounded border border-[#27272A]">
               <span className="text-[#71717A] text-[10px]">ACTUAL REDUCTION</span>
               <div className="font-bold text-emerald-400 text-sm mt-0.5">
                 -{lastOptResult.actual_reduction_kw.toFixed(2)} kW
               </div>
             </div>
-            <div className="bg-[#121215] p-2 rounded border border-[#27272A]">
+            <div className="bg-[#121215]/80 p-2 rounded border border-[#27272A]">
               <span className="text-[#71717A] text-[10px]">RESIDUAL DEMAND</span>
               <div className="font-bold text-cyan-400 text-sm mt-0.5">
                 {lastOptResult.residual_demand_kw.toFixed(2)} kW
               </div>
             </div>
-            <div className="bg-[#121215] p-2 rounded border border-[#27272A]">
+            <div className="bg-[#121215]/80 p-2 rounded border border-[#27272A]">
               <span className="text-[#71717A] text-[10px]">ITERATIONS</span>
               <div className="font-bold text-[#FAFAFA] text-sm mt-0.5">{lastOptResult.iterations_run}</div>
             </div>
@@ -419,7 +416,7 @@ export const OptimizationCentre: React.FC<OptimizationCentreProps> = ({ status, 
                 {lastOptResult.actions_taken.map((act, i) => (
                   <div
                     key={i}
-                    className="p-2 bg-[#121215] rounded border border-[#27272A] flex items-center justify-between text-[11px] tabular-nums"
+                    className="p-2 bg-[#121215]/80 rounded border border-[#27272A] flex items-center justify-between text-[11px] tabular-nums"
                   >
                     <div>
                       <span className="font-semibold text-[#FAFAFA]">{act.load_name}</span>
@@ -441,7 +438,7 @@ export const OptimizationCentre: React.FC<OptimizationCentreProps> = ({ status, 
               </div>
             </div>
           )}
-        </div>
+        </SciFiCard>
       )}
     </div>
   );

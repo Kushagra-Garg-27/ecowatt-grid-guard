@@ -7,7 +7,6 @@ import {
   ShieldCheck,
   Download,
   Activity,
-  Layers,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -21,6 +20,7 @@ import {
   ReferenceLine,
 } from 'recharts';
 import { DailyAnalyticsSummary } from '../types';
+import { SciFiCard } from '@/components/ui/moving-dot-card';
 
 interface SustainabilityAnalyticsProps {
   summary: DailyAnalyticsSummary | null;
@@ -128,16 +128,16 @@ export const SustainabilityAnalytics: React.FC<SustainabilityAnalyticsProps> = (
         </div>
       </div>
 
-      {/* Metric Comparison Bento Server Cards */}
+      {/* Metric Comparison Sci-Fi Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {/* Peak Power Shaving */}
-        <div className="bento-surface rounded-lg p-3.5 space-y-2 border border-[#27272A] border-t-white/[0.08]">
+        <SciFiCard accent="emerald" dotDuration="7s" innerClassName="p-3.5 space-y-2">
           <div className="flex items-center justify-between text-zinc-400 font-mono text-[10px] uppercase tracking-wider">
             <span>Peak Demand Shaving</span>
             <TrendingDown className="h-3.5 w-3.5 text-emerald-400" />
           </div>
           <div className="flex items-baseline space-x-1.5">
-            <span className="font-mono tabular-nums text-2xl font-semibold text-zinc-100">
+            <span className="font-mono tabular-nums text-2xl font-semibold text-transparent bg-clip-text bg-[linear-gradient(45deg,#fff,#10b981)]">
               {summary.peak_reduction_kw.toFixed(2)}
             </span>
             <span className="font-mono text-xs text-zinc-500">kW</span>
@@ -146,16 +146,16 @@ export const SustainabilityAnalytics: React.FC<SustainabilityAnalyticsProps> = (
             <span className="text-zinc-500">BASE: {summary.baseline_peak_power_kw.toFixed(2)} kW</span>
             <span className="text-emerald-400 font-medium">-{summary.peak_reduction_pct.toFixed(1)}%</span>
           </div>
-        </div>
+        </SciFiCard>
 
         {/* Daily Energy Consumption */}
-        <div className="bento-surface rounded-lg p-3.5 space-y-2 border border-[#27272A] border-t-white/[0.08]">
+        <SciFiCard accent="cyan" dotDuration="8s" innerClassName="p-3.5 space-y-2">
           <div className="flex items-center justify-between text-zinc-400 font-mono text-[10px] uppercase tracking-wider">
             <span>Daily Net Energy Saved</span>
             <Zap className="h-3.5 w-3.5 text-cyan-400" />
           </div>
           <div className="flex items-baseline space-x-1.5">
-            <span className="font-mono tabular-nums text-2xl font-semibold text-zinc-100">
+            <span className="font-mono tabular-nums text-2xl font-semibold text-transparent bg-clip-text bg-[linear-gradient(45deg,#fff,#00aaff)]">
               {summary.net_energy_saved_kwh.toFixed(2)}
             </span>
             <span className="font-mono text-xs text-zinc-500">kWh</span>
@@ -164,16 +164,16 @@ export const SustainabilityAnalytics: React.FC<SustainabilityAnalyticsProps> = (
             <span className="text-zinc-500">BASE: {summary.total_baseline_energy_kwh.toFixed(1)} kWh</span>
             <span className="text-cyan-400 font-medium">-{summary.energy_saved_pct.toFixed(1)}%</span>
           </div>
-        </div>
+        </SciFiCard>
 
         {/* Electricity Cost Savings */}
-        <div className="bento-surface rounded-lg p-3.5 space-y-2 border border-[#27272A] border-t-white/[0.08]">
+        <SciFiCard accent="amber" dotDuration="9s" innerClassName="p-3.5 space-y-2">
           <div className="flex items-center justify-between text-zinc-400 font-mono text-[10px] uppercase tracking-wider">
             <span>Electricity Cost Shaved</span>
             <DollarSign className="h-3.5 w-3.5 text-amber-400" />
           </div>
           <div className="flex items-baseline space-x-1.5">
-            <span className="font-mono tabular-nums text-2xl font-semibold text-zinc-100">
+            <span className="font-mono tabular-nums text-2xl font-semibold text-transparent bg-clip-text bg-[linear-gradient(45deg,#fff,#f59e0b)]">
               ₹{summary.net_cost_saved.toFixed(2)}
             </span>
             <span className="font-mono text-xs text-zinc-500">INR</span>
@@ -182,16 +182,16 @@ export const SustainabilityAnalytics: React.FC<SustainabilityAnalyticsProps> = (
             <span className="text-zinc-500">BASE: ₹{summary.baseline_total_cost.toFixed(2)}</span>
             <span className="text-amber-400 font-medium">-{summary.cost_saved_pct.toFixed(1)}%</span>
           </div>
-        </div>
+        </SciFiCard>
 
         {/* Carbon Footprint Reduction */}
-        <div className="bento-surface rounded-lg p-3.5 space-y-2 border border-[#27272A] border-t-white/[0.08]">
+        <SciFiCard accent="emerald" dotDuration="10s" innerClassName="p-3.5 space-y-2">
           <div className="flex items-center justify-between text-zinc-400 font-mono text-[10px] uppercase tracking-wider">
             <span>Avoided CO2 Emissions</span>
             <Leaf className="h-3.5 w-3.5 text-emerald-400" />
           </div>
           <div className="flex items-baseline space-x-1.5">
-            <span className="font-mono tabular-nums text-2xl font-semibold text-zinc-100">
+            <span className="font-mono tabular-nums text-2xl font-semibold text-transparent bg-clip-text bg-[linear-gradient(45deg,#fff,#10b981)]">
               {summary.carbon_avoided_kg.toFixed(2)}
             </span>
             <span className="font-mono text-xs text-zinc-500">kg CO2</span>
@@ -200,36 +200,36 @@ export const SustainabilityAnalytics: React.FC<SustainabilityAnalyticsProps> = (
             <span className="text-zinc-500">BASE: {summary.baseline_total_carbon_kg.toFixed(1)} kg</span>
             <span className="text-emerald-400 font-medium">-{summary.carbon_reduction_pct.toFixed(1)}%</span>
           </div>
-        </div>
+        </SciFiCard>
       </div>
 
       {/* Grid Reliability & Protection Register */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-        <div className="bento-surface rounded-md p-3 border border-[#27272A]">
+        <SciFiCard accent="rose" dotDuration="11s" innerClassName="p-3">
           <span className="text-zinc-500 font-mono text-[10px] uppercase block tracking-wider">
             Baseline Exceedance
           </span>
           <span className="font-mono tabular-nums text-rose-400 font-semibold text-sm mt-0.5 block">
             {summary.threshold_exceedance_minutes_baseline} mins
           </span>
-        </div>
-        <div className="bento-surface rounded-md p-3 border border-[#27272A]">
+        </SciFiCard>
+        <SciFiCard accent="emerald" dotDuration="12s" innerClassName="p-3">
           <span className="text-zinc-500 font-mono text-[10px] uppercase block tracking-wider">
             Optimized Exceedance
           </span>
           <span className="font-mono tabular-nums text-emerald-400 font-semibold text-sm mt-0.5 block">
             {summary.threshold_exceedance_minutes_optimized} mins
           </span>
-        </div>
-        <div className="bento-surface rounded-md p-3 border border-[#27272A]">
+        </SciFiCard>
+        <SciFiCard accent="cyan" dotDuration="13s" innerClassName="p-3">
           <span className="text-zinc-500 font-mono text-[10px] uppercase block tracking-wider">
             Actuations Dispatched
           </span>
           <span className="font-mono tabular-nums text-zinc-100 font-semibold text-sm mt-0.5 block">
             {summary.total_control_operations} ops
           </span>
-        </div>
-        <div className="bento-surface rounded-md p-3 border border-[#27272A]">
+        </SciFiCard>
+        <SciFiCard accent="emerald" dotDuration="14s" innerClassName="p-3">
           <span className="text-zinc-500 font-mono text-[10px] uppercase block tracking-wider">
             Critical Load Trip
           </span>
@@ -237,15 +237,15 @@ export const SustainabilityAnalytics: React.FC<SustainabilityAnalyticsProps> = (
             <ShieldCheck className="h-3.5 w-3.5" />
             <span>0 (100% IMMUNE)</span>
           </span>
-        </div>
+        </SciFiCard>
       </div>
 
-      {/* 24-Hour Comparative Load Curve Chart */}
-      <div className="bento-surface rounded-lg p-4 border border-[#27272A] border-t-white/[0.08] space-y-3">
+      {/* 24-Hour Comparative Load Curve Chart (SciFiCard) */}
+      <SciFiCard accent="cyan" dotDuration="14s" innerClassName="p-4 space-y-3">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#27272A] pb-3">
           <div>
             <h3 className="font-mono text-xs font-semibold text-zinc-100 uppercase tracking-wider flex items-center space-x-2">
-              <Activity className="h-3.5 w-3.5 text-emerald-400" />
+              <Activity className="h-3.5 w-3.5 text-cyan-400" />
               <span>24-Hour Comparative Load Profile</span>
             </h3>
             <p className="font-mono text-[10px] text-zinc-500 mt-0.5">
@@ -339,7 +339,7 @@ export const SustainabilityAnalytics: React.FC<SustainabilityAnalyticsProps> = (
             </ComposedChart>
           </ResponsiveContainer>
         </div>
-      </div>
+      </SciFiCard>
     </div>
   );
 };

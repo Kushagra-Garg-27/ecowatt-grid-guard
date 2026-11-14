@@ -2,14 +2,12 @@ import React, { useState, useEffect } from 'react';
 import {
   Radio,
   Wifi,
-  Server,
   RefreshCw,
   Terminal,
-  Activity,
-  Layers,
   ChevronRight,
 } from 'lucide-react';
 import { fetchIoTMonitor } from '../services/api';
+import { SciFiCard } from '@/components/ui/moving-dot-card';
 
 export const IoTCommunicationMonitor: React.FC = () => {
   const [monitorData, setMonitorData] = useState<any>(null);
@@ -63,10 +61,10 @@ export const IoTCommunicationMonitor: React.FC = () => {
         </button>
       </div>
 
-      {/* Protocol Architecture Cards (21st.dev Server Card Style) */}
+      {/* Protocol Architecture Cards (Moving Dot Sci-Fi Cards) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
         {/* CoAP UDP Card */}
-        <div className="bento-surface bento-surface-hover p-3.5 space-y-2.5">
+        <SciFiCard accent="emerald" dotDuration="7s" innerClassName="p-3.5 space-y-2.5">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <div className="p-1 rounded bg-[#18181B] text-emerald-400 border border-[#27272A]">
@@ -81,16 +79,16 @@ export const IoTCommunicationMonitor: React.FC = () => {
               UDP LISTENING
             </span>
           </div>
-          <div className="text-[10px] text-[#A1A1AA] space-y-0.5 bg-[#121215] p-2.5 rounded border border-[#27272A] font-mono">
+          <div className="text-[10px] text-[#A1A1AA] space-y-0.5 bg-[#121215]/80 p-2.5 rounded border border-[#27272A] font-mono">
             <div>&bull; /telemetry/power &rarr; 2.04 CHANGED (active demand kW)</div>
             <div>&bull; /telemetry/occupancy &rarr; 2.04 CHANGED (zone headcount)</div>
             <div>&bull; /telemetry/environment &rarr; 2.04 CHANGED (PZEM voltage/temp)</div>
             <div>&bull; /telemetry/status &rarr; 2.04 CHANGED (health telemetry)</div>
           </div>
-        </div>
+        </SciFiCard>
 
         {/* MQTT Broker Card */}
-        <div className="bento-surface bento-surface-hover p-3.5 space-y-2.5">
+        <SciFiCard accent="cyan" dotDuration="8s" innerClassName="p-3.5 space-y-2.5">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <div className="p-1 rounded bg-[#18181B] text-cyan-400 border border-[#27272A]">
@@ -105,24 +103,24 @@ export const IoTCommunicationMonitor: React.FC = () => {
               QOS 1 CONNECTED
             </span>
           </div>
-          <div className="text-[10px] text-[#A1A1AA] space-y-0.5 bg-[#121215] p-2.5 rounded border border-[#27272A] font-mono">
+          <div className="text-[10px] text-[#A1A1AA] space-y-0.5 bg-[#121215]/80 p-2.5 rounded border border-[#27272A] font-mono">
             <div>&bull; ecowatt/building/demand (Live power telemetry)</div>
             <div>&bull; ecowatt/load/{'{id}'}/command (Actuator dispatch)</div>
             <div>&bull; ecowatt/load/{'{id}'}/ack (Hardware feedback ack)</div>
             <div>&bull; ecowatt/optimization/events (Mitigation events)</div>
           </div>
-        </div>
+        </SciFiCard>
       </div>
 
       {/* Sensor Node Heartbeats (5 Server Node Chips) */}
-      <div className="bento-surface p-3 space-y-2">
+      <SciFiCard accent="emerald" dotDuration="11s" innerClassName="p-3 space-y-2">
         <div className="flex items-center justify-between text-[10px] font-mono uppercase tracking-wider text-[#71717A]">
           <span>EDGE SENSOR NODES HEARTBEAT REGISTER</span>
           <span className="text-emerald-400">SYNC INTERVAL: 3000ms</span>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
           {Object.entries(heartbeats).map(([sid, ts]: [string, any], i) => (
-            <div key={sid} className="bg-[#121215] p-2 rounded border border-[#27272A] text-xs font-mono">
+            <div key={sid} className="bg-[#121215]/80 p-2 rounded border border-[#27272A] text-xs font-mono">
               <div className="flex items-center space-x-1.5 text-[#FAFAFA] font-medium text-[11px]">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
                 <span className="truncate">NODE-ESP32-0{i + 1}</span>
@@ -133,10 +131,10 @@ export const IoTCommunicationMonitor: React.FC = () => {
             </div>
           ))}
         </div>
-      </div>
+      </SciFiCard>
 
-      {/* Streaming Packet Inspector (21st.dev Streaming Data Rows / Terminal) */}
-      <div className="bento-surface overflow-hidden">
+      {/* Streaming Packet Inspector (SciFiCard Terminal) */}
+      <SciFiCard accent="cyan" dotDuration="14s" innerClassName="overflow-hidden">
         {/* Terminal Title Bar */}
         <div className="h-9 px-3.5 bg-[#121215] border-b border-[#27272A] flex items-center justify-between text-xs font-mono">
           <div className="flex items-center space-x-2">
@@ -198,93 +196,92 @@ export const IoTCommunicationMonitor: React.FC = () => {
               return (
                 <div
                   key={i}
+                  className="hover:bg-[#18181B] transition p-2.5 px-3 grid grid-cols-12 gap-2 items-center cursor-pointer"
                   onClick={() => setExpandedRow(isExpanded ? null : i)}
-                  className="px-3 py-1.5 hover:bg-[#18181B] transition cursor-pointer text-[11px]"
                 >
-                  <div className="grid grid-cols-12 gap-2 items-center tabular-nums">
-                    <div className="col-span-2 text-[#71717A]">
-                      {new Date(pkt.timestamp).toLocaleTimeString()}
-                    </div>
-                    <div className="col-span-2">
-                      <span className="px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[9px] font-bold">
-                        COAP POST
-                      </span>
-                    </div>
-                    <div className="col-span-4 text-[#A1A1AA] truncate">
-                      {pkt.type || '/telemetry/sensor'}
-                    </div>
-                    <div className="col-span-3 text-[#71717A] truncate">
-                      {JSON.stringify(pkt.payload)}
-                    </div>
-                    <div className="col-span-1 text-right text-emerald-400 font-semibold text-[10px]">
-                      2.04 ACK
-                    </div>
+                  <div className="col-span-2 text-[#71717A] tabular-nums text-[11px]">
+                    {new Date(pkt.timestamp).toLocaleTimeString()}
+                  </div>
+                  <div className="col-span-2">
+                    <span className="px-1.5 py-0.5 rounded text-[9px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold">
+                      COAP POST
+                    </span>
+                  </div>
+                  <div className="col-span-4 text-[#FAFAFA] font-medium truncate">
+                    {pkt.endpoint}
+                  </div>
+                  <div className="col-span-3 text-[#A1A1AA] truncate font-mono text-[11px]">
+                    {typeof pkt.payload === 'object'
+                      ? JSON.stringify(pkt.payload)
+                      : String(pkt.payload)}
+                  </div>
+                  <div className="col-span-1 text-right font-bold text-emerald-400 text-[11px]">
+                    2.04 ACK
                   </div>
                   {isExpanded && (
-                    <pre className="mt-2 p-2 rounded bg-[#09090B] border border-[#27272A] text-[10px] text-[#A1A1AA] overflow-x-auto">
-                      {JSON.stringify(pkt.payload, null, 2)}
-                    </pre>
+                    <div className="col-span-12 mt-2 p-2 bg-[#09090B] rounded border border-[#27272A] text-[11px] text-[#A1A1AA] overflow-x-auto">
+                      <pre>{JSON.stringify(pkt, null, 2)}</pre>
+                    </div>
                   )}
                 </div>
               );
             })}
 
           {activeTab === 'mqtt' &&
-            mqttMessages.slice().reverse().map((msg: any, i: number) => {
-              const isExpanded = expandedRow === i;
-              return (
-                <div
-                  key={i}
-                  onClick={() => setExpandedRow(isExpanded ? null : i)}
-                  className="px-3 py-1.5 hover:bg-[#18181B] transition cursor-pointer text-[11px]"
-                >
-                  <div className="grid grid-cols-12 gap-2 items-center tabular-nums">
-                    <div className="col-span-2 text-[#71717A]">
-                      {new Date(msg.timestamp).toLocaleTimeString()}
-                    </div>
-                    <div className="col-span-2">
-                      <span className="px-1.5 py-0.2 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 text-[9px] font-bold">
-                        MQTT QoS {msg.qos}
-                      </span>
-                    </div>
-                    <div className="col-span-4 text-[#A1A1AA] truncate">
-                      {msg.topic}
-                    </div>
-                    <div className="col-span-3 text-[#71717A] truncate">
-                      {JSON.stringify(msg.payload)}
-                    </div>
-                    <div className="col-span-1 text-right text-cyan-400 font-semibold text-[10px]">
-                      PUB ACK
-                    </div>
-                  </div>
-                  {isExpanded && (
-                    <pre className="mt-2 p-2 rounded bg-[#09090B] border border-[#27272A] text-[10px] text-[#A1A1AA] overflow-x-auto">
-                      {JSON.stringify(msg.payload, null, 2)}
-                    </pre>
-                  )}
+            mqttMessages.slice().reverse().map((msg: any, i: number) => (
+              <div
+                key={i}
+                className="hover:bg-[#18181B] transition p-2.5 px-3 grid grid-cols-12 gap-2 items-center"
+              >
+                <div className="col-span-2 text-[#71717A] tabular-nums text-[11px]">
+                  {new Date(msg.timestamp).toLocaleTimeString()}
                 </div>
-              );
-            })}
-
-          {activeTab === 'events' &&
-            optEvents.slice().reverse().map((evt: any, i: number) => (
-              <div key={i} className="px-3 py-2 hover:bg-[#18181B] transition text-[11px] space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="font-semibold text-white">{evt.event_id}</span>
-                  <span className="text-[10px] text-[#71717A] tabular-nums">
-                    {new Date(evt.timestamp).toLocaleTimeString()}
+                <div className="col-span-2">
+                  <span className="px-1.5 py-0.5 rounded text-[9px] bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 font-bold">
+                    QOS 1
                   </span>
                 </div>
-                <div className="text-[11px] text-[#A1A1AA] tabular-nums">
-                  INITIAL: {evt.initial_demand_kw?.toFixed(2)} kW &rarr; REDUCED: {evt.actual_reduction_kw?.toFixed(2)} kW (TARGET: {evt.target_kw?.toFixed(2)} kW)
+                <div className="col-span-4 text-[#FAFAFA] font-medium truncate">
+                  {msg.topic}
                 </div>
-                <div className="text-[10px] text-[#71717A]">
-                  STATUS: <span className="text-emerald-400 font-semibold">{evt.status}</span> &bull; ITERATIONS: {evt.iterations_run}
+                <div className="col-span-3 text-[#A1A1AA] truncate font-mono text-[11px]">
+                  {typeof msg.payload === 'object'
+                    ? JSON.stringify(msg.payload)
+                    : String(msg.payload)}
+                </div>
+                <div className="col-span-1 text-right font-bold text-cyan-400 text-[11px]">
+                  DELIVERED
+                </div>
+              </div>
+            ))}
+
+          {activeTab === 'events' &&
+            optEvents.slice().reverse().map((ev: any, i: number) => (
+              <div
+                key={i}
+                className="hover:bg-[#18181B] transition p-2.5 px-3 grid grid-cols-12 gap-2 items-center"
+              >
+                <div className="col-span-2 text-[#71717A] tabular-nums text-[11px]">
+                  {new Date(ev.timestamp).toLocaleTimeString()}
+                </div>
+                <div className="col-span-2">
+                  <span className="px-1.5 py-0.5 rounded text-[9px] bg-amber-500/10 text-amber-400 border border-amber-500/20 font-bold">
+                    EVENT
+                  </span>
+                </div>
+                <div className="col-span-4 text-[#FAFAFA] font-medium truncate">
+                  {ev.action}
+                </div>
+                <div className="col-span-3 text-[#A1A1AA] truncate font-mono text-[11px]">
+                  {ev.details || JSON.stringify(ev)}
+                </div>
+                <div className="col-span-1 text-right font-bold text-amber-400 text-[11px]">
+                  LOGGED
                 </div>
               </div>
             ))}
         </div>
-      </div>
+      </SciFiCard>
     </div>
   );
 };

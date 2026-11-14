@@ -406,8 +406,16 @@ export const PeakChart: React.FC<PeakChartProps> = ({
   return (
     <div
       ref={containerRef}
-      className={`relative overflow-hidden rounded-lg bg-[#0F0F12] border border-[#27272A] border-t-white/[0.08] p-4 text-[#FAFAFA] transition-colors ${className}`}
+      className={`scifi-card-outer scifi-accent-cyan ${className}`}
     >
+      <div className="scifi-tracer-dot" style={{ color: '#00AAFF', animationDuration: '10s' }} />
+      <div className="scifi-card-inner p-4 text-[#FAFAFA]">
+        <div className="scifi-ray" />
+        <div className="scifi-reticle-top" />
+        <div className="scifi-reticle-bottom" />
+        <div className="scifi-reticle-left" />
+        <div className="scifi-reticle-right" />
+        <div className="relative z-[2]">
       {/* Header: Title, Period Controls, and Real-time Badge */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
         <div>
@@ -452,7 +460,7 @@ export const PeakChart: React.FC<PeakChartProps> = ({
       {/* Metric Display & Trend Pill */}
       <div className="flex flex-wrap items-baseline justify-between gap-3 mb-3">
         <div className="flex items-baseline space-x-2">
-          <span className="font-mono tabular-nums text-3xl font-bold tracking-tight text-[#FAFAFA]">
+          <span className="font-mono tabular-nums text-3xl font-bold tracking-tight text-transparent bg-clip-text bg-[linear-gradient(45deg,#fff,#00aaff)]">
             {displayValue.toFixed(2)}
           </span>
           <span className="text-xs font-mono font-semibold text-cyan-400">{unit}</span>
@@ -788,6 +796,8 @@ export const PeakChart: React.FC<PeakChartProps> = ({
               <span>BASELINE DEMAND</span>
             </div>
           )}
+        </div>
+      </div>
         </div>
       </div>
     </div>

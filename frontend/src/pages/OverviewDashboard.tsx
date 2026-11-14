@@ -18,6 +18,7 @@ import {
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, ReferenceLine, CartesianGrid } from 'recharts';
 import { BuildingStatus, ZoneSummary, DailyAnalyticsSummary } from '../types';
 import { PeakChart, PeakChartDataPoint, PeakChartPeriodData } from '@/components/ui/peak-chart';
+import { SciFiCard } from '@/components/ui/moving-dot-card';
 
 interface OverviewProps {
   status: BuildingStatus | null;
@@ -144,11 +145,15 @@ export const OverviewDashboard: React.FC<OverviewProps> = ({ status, zones, summ
 
   return (
     <div className="space-y-4">
-      {/* Exceedance Alert Banner (Tactile Warning Box) */}
+      {/* Exceedance Alert Banner (SciFiCard Rose Alert with Moving Dot) */}
       {isExceeded && (
-        <div className="bg-[#160B0E] border border-rose-500/40 rounded-lg p-3 flex items-center justify-between shadow-xs">
+        <SciFiCard
+          accent="rose"
+          dotDuration="5s"
+          innerClassName="p-3 flex items-center justify-between shadow-xs bg-[#160B0E]/90"
+        >
           <div className="flex items-center space-x-3">
-            <div className="p-1.5 bg-rose-500/10 text-rose-400 rounded border border-rose-500/30">
+            <div className="p-1.5 bg-rose-500/20 text-rose-400 rounded border border-rose-500/40">
               <AlertTriangle className="h-4 w-4" />
             </div>
             <div>
@@ -166,19 +171,29 @@ export const OverviewDashboard: React.FC<OverviewProps> = ({ status, zones, summ
           >
             DISPATCH OPTIMIZER &rarr;
           </button>
-        </div>
+        </SciFiCard>
       )}
 
-      {/* Primary KPI Bento Grid (21st.dev Server Card Style) */}
+      {/* Primary KPI Bento Grid (Moving Dot Sci-Fi Cards) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {/* Card 1: Power */}
-        <div className="bento-surface bento-surface-hover p-3.5 space-y-2">
+        <SciFiCard
+          accent={isExceeded ? 'rose' : 'cyan'}
+          dotDuration="6s"
+          innerClassName="p-3.5 space-y-2 flex flex-col justify-between"
+        >
           <div className="flex items-center justify-between text-[#71717A] text-[10px] font-mono uppercase tracking-wider">
             <span>CURRENT ACTIVE LOAD</span>
-            <span className={`h-2 w-2 rounded-full ${isExceeded ? 'bg-rose-400 animate-ping' : 'bg-emerald-400'}`} />
+            <span className={`h-2 w-2 rounded-full ${isExceeded ? 'bg-rose-400 animate-ping' : 'bg-cyan-400'}`} />
           </div>
           <div className="flex items-baseline space-x-1.5">
-            <span className={`text-2xl font-mono font-bold tracking-tight tabular-nums ${isExceeded ? 'text-rose-400' : 'text-[#FAFAFA]'}`}>
+            <span
+              className={`text-2xl font-mono font-bold tracking-tight tabular-nums text-transparent bg-clip-text ${
+                isExceeded
+                  ? 'bg-[linear-gradient(45deg,#fff,#f43f5e)]'
+                  : 'bg-[linear-gradient(45deg,#fff,#00aaff)]'
+              }`}
+            >
               {status.current_power_kw.toFixed(2)}
             </span>
             <span className="text-xs font-mono text-[#71717A]">kW</span>
@@ -186,7 +201,7 @@ export const OverviewDashboard: React.FC<OverviewProps> = ({ status, zones, summ
           {/* Threshold Progress Bar */}
           <div className="w-full bg-[#18181B] h-1.5 rounded-full overflow-hidden border border-[#27272A]">
             <div
-              className={`h-full rounded-full transition-all duration-500 ${isExceeded ? 'bg-rose-500' : 'bg-emerald-500'}`}
+              className={`h-full rounded-full transition-all duration-500 ${isExceeded ? 'bg-rose-500' : 'bg-cyan-500'}`}
               style={{ width: `${powerPercent}%` }}
             />
           </div>
@@ -196,16 +211,20 @@ export const OverviewDashboard: React.FC<OverviewProps> = ({ status, zones, summ
               {isExceeded ? `+${Math.abs(parseFloat(powerMargin))} kW EXCESS` : `${powerMargin} kW HEADROOM`}
             </span>
           </div>
-        </div>
+        </SciFiCard>
 
         {/* Card 2: Target & Peak */}
-        <div className="bento-surface bento-surface-hover p-3.5 space-y-2">
+        <SciFiCard
+          accent="cyan"
+          dotDuration="7s"
+          innerClassName="p-3.5 space-y-2 flex flex-col justify-between"
+        >
           <div className="flex items-center justify-between text-[#71717A] text-[10px] font-mono uppercase tracking-wider">
             <span>PEAK DEMAND & TARGET</span>
             <Target className="h-3.5 w-3.5 text-cyan-400" />
           </div>
           <div className="flex items-baseline space-x-1.5">
-            <span className="text-2xl font-mono font-bold tracking-tight tabular-nums text-[#FAFAFA]">
+            <span className="text-2xl font-mono font-bold tracking-tight tabular-nums text-transparent bg-clip-text bg-[linear-gradient(45deg,#fff,#00aaff)]">
               {status.target_demand_kw.toFixed(2)}
             </span>
             <span className="text-xs font-mono text-[#71717A]">kW TARGET</span>
@@ -220,16 +239,20 @@ export const OverviewDashboard: React.FC<OverviewProps> = ({ status, zones, summ
             <span>TODAY'S PEAK</span>
             <span className="text-cyan-400 font-semibold">{status.peak_demand_today_kw.toFixed(2)} kW</span>
           </div>
-        </div>
+        </SciFiCard>
 
         {/* Card 3: Energy & Cost */}
-        <div className="bento-surface bento-surface-hover p-3.5 space-y-2">
+        <SciFiCard
+          accent="amber"
+          dotDuration="8s"
+          innerClassName="p-3.5 space-y-2 flex flex-col justify-between"
+        >
           <div className="flex items-center justify-between text-[#71717A] text-[10px] font-mono uppercase tracking-wider">
             <span>EST. DAILY ELECTRICITY COST</span>
             <DollarSign className="h-3.5 w-3.5 text-amber-400" />
           </div>
           <div className="flex items-baseline space-x-1.5">
-            <span className="text-2xl font-mono font-bold tracking-tight tabular-nums text-[#FAFAFA]">
+            <span className="text-2xl font-mono font-bold tracking-tight tabular-nums text-transparent bg-clip-text bg-[linear-gradient(45deg,#fff,#f59e0b)]">
               ₹{status.estimated_cost_today.toFixed(2)}
             </span>
             <span className="text-xs font-mono text-[#71717A]">INR</span>
@@ -241,16 +264,20 @@ export const OverviewDashboard: React.FC<OverviewProps> = ({ status, zones, summ
             <span>CONSUMED ENERGY</span>
             <span className="text-[#A1A1AA] font-semibold">{status.current_energy_kwh.toFixed(1)} kWh</span>
           </div>
-        </div>
+        </SciFiCard>
 
         {/* Card 4: Carbon Emissions */}
-        <div className="bento-surface bento-surface-hover p-3.5 space-y-2">
+        <SciFiCard
+          accent="emerald"
+          dotDuration="9s"
+          innerClassName="p-3.5 space-y-2 flex flex-col justify-between"
+        >
           <div className="flex items-center justify-between text-[#71717A] text-[10px] font-mono uppercase tracking-wider">
             <span>EST. CARBON EMISSIONS</span>
             <Leaf className="h-3.5 w-3.5 text-emerald-400" />
           </div>
           <div className="flex items-baseline space-x-1.5">
-            <span className="text-2xl font-mono font-bold tracking-tight tabular-nums text-[#FAFAFA]">
+            <span className="text-2xl font-mono font-bold tracking-tight tabular-nums text-transparent bg-clip-text bg-[linear-gradient(45deg,#fff,#10b981)]">
               {status.estimated_carbon_kg_today.toFixed(1)}
             </span>
             <span className="text-xs font-mono text-[#71717A]">kg CO2</span>
@@ -264,12 +291,12 @@ export const OverviewDashboard: React.FC<OverviewProps> = ({ status, zones, summ
               {summary ? `${summary.carbon_avoided_kg.toFixed(2)} kg` : '0.00 kg'}
             </span>
           </div>
-        </div>
+        </SciFiCard>
       </div>
 
-      {/* Secondary Status Badges (Tactile Telemetry Pill Row) */}
+      {/* Secondary Status Badges (SciFiCard Telemetry Pills with Perimeter Dots) */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-        <div className="bg-[#0F0F12] border border-[#27272A] rounded-md p-2.5 flex items-center space-x-2.5">
+        <SciFiCard accent="emerald" dotDuration="10s" innerClassName="p-2.5 flex items-center space-x-2.5">
           <div className="p-1 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
             <ShieldCheck className="h-4 w-4" />
           </div>
@@ -277,9 +304,9 @@ export const OverviewDashboard: React.FC<OverviewProps> = ({ status, zones, summ
             <div className="text-[10px] text-[#71717A] uppercase">CRITICAL LOADS</div>
             <div className="text-[11px] font-bold text-emerald-400">100% PROTECTED</div>
           </div>
-        </div>
+        </SciFiCard>
 
-        <div className="bg-[#0F0F12] border border-[#27272A] rounded-md p-2.5 flex items-center space-x-2.5">
+        <SciFiCard accent="amber" dotDuration="11s" innerClassName="p-2.5 flex items-center space-x-2.5">
           <div className="p-1 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">
             <Scissors className="h-4 w-4" />
           </div>
@@ -287,9 +314,9 @@ export const OverviewDashboard: React.FC<OverviewProps> = ({ status, zones, summ
             <div className="text-[10px] text-[#71717A] uppercase">CURTAILED LOADS</div>
             <div className="text-[11px] font-bold text-[#FAFAFA]">{status.curtailed_loads_count} ACTIVE</div>
           </div>
-        </div>
+        </SciFiCard>
 
-        <div className="bg-[#0F0F12] border border-[#27272A] rounded-md p-2.5 flex items-center space-x-2.5">
+        <SciFiCard accent="cyan" dotDuration="12s" innerClassName="p-2.5 flex items-center space-x-2.5">
           <div className="p-1 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
             <Calendar className="h-4 w-4" />
           </div>
@@ -297,9 +324,9 @@ export const OverviewDashboard: React.FC<OverviewProps> = ({ status, zones, summ
             <div className="text-[10px] text-[#71717A] uppercase">SHIFTED LOADS</div>
             <div className="text-[11px] font-bold text-[#FAFAFA]">{status.shifted_loads_count} SCHEDULED</div>
           </div>
-        </div>
+        </SciFiCard>
 
-        <div className="bg-[#0F0F12] border border-[#27272A] rounded-md p-2.5 flex items-center space-x-2.5">
+        <SciFiCard accent="emerald" dotDuration="13s" innerClassName="p-2.5 flex items-center space-x-2.5">
           <div className="p-1 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
             <CheckCircle2 className="h-4 w-4" />
           </div>
@@ -307,10 +334,10 @@ export const OverviewDashboard: React.FC<OverviewProps> = ({ status, zones, summ
             <div className="text-[10px] text-[#71717A] uppercase">FEEDBACK LOOP</div>
             <div className="text-[11px] font-bold text-emerald-400">CLOSED-LOOP ACTIVE</div>
           </div>
-        </div>
+        </SciFiCard>
       </div>
 
-      {/* Hero Stat Card: PeakChart (Refactored to 21st.dev Vercel Style) */}
+      {/* Hero Stat Card: PeakChart (Refactored to 21st.dev Moving Dot Style) */}
       <PeakChart
         title="Peak Demand Limiting & Shaving"
         value={summary?.optimized_peak_power_kw ?? status.peak_demand_today_kw}
@@ -328,8 +355,12 @@ export const OverviewDashboard: React.FC<OverviewProps> = ({ status, zones, summ
         }
       />
 
-      {/* Interactive Architecture Flow Teaser */}
-      <div className="bento-surface bento-surface-hover p-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+      {/* Interactive Architecture Flow Teaser (SciFiCard) */}
+      <SciFiCard
+        accent="emerald"
+        dotDuration="12s"
+        innerClassName="p-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"
+      >
         <div className="flex items-center space-x-2.5">
           <div className="p-1.5 bg-[#18181B] text-emerald-400 rounded border border-[#27272A]">
             <Sparkles className="h-4 w-4" />
@@ -350,14 +381,14 @@ export const OverviewDashboard: React.FC<OverviewProps> = ({ status, zones, summ
           <span>EXPLORE BENTO</span>
           <ArrowRight className="h-3 w-3" />
         </button>
-      </div>
+      </SciFiCard>
 
-      {/* Chart: 24h Demand Trend (Grafana / Vercel Industrial Chrome) */}
-      <div className="bento-surface p-4 space-y-3">
+      {/* Chart: 24h Demand Trend (SciFiCard) */}
+      <SciFiCard accent="cyan" dotDuration="14s" innerClassName="p-4 space-y-3">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-2.5 border-b border-[#27272A] gap-2">
           <div>
             <div className="flex items-center space-x-2">
-              <Activity className="h-3.5 w-3.5 text-emerald-400" />
+              <Activity className="h-3.5 w-3.5 text-cyan-400" />
               <h3 className="text-xs font-mono font-semibold uppercase tracking-wider text-[#FAFAFA]">
                 24-HOUR CLOSED-LOOP DISPATCH DEMAND
               </h3>
@@ -480,13 +511,13 @@ export const OverviewDashboard: React.FC<OverviewProps> = ({ status, zones, summ
             <span>LIMIT (7.00 kW)</span>
           </div>
         </div>
-      </div>
+      </SciFiCard>
 
-      {/* Five Zones Snapshot (21st.dev Server Card Grid) */}
+      {/* Five Zones Snapshot (SciFiCard Grid with Moving Dots) */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <Server className="h-3.5 w-3.5 text-[#71717A]" />
+            <Server className="h-3.5 w-3.5 text-emerald-400" />
             <h3 className="text-xs font-mono font-semibold uppercase tracking-wider text-[#FAFAFA]">
               BUILDING ZONES TELEMETRY NODES
             </h3>
@@ -501,9 +532,11 @@ export const OverviewDashboard: React.FC<OverviewProps> = ({ status, zones, summ
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
           {zones.map((z, idx) => (
-            <div
+            <SciFiCard
               key={z.zone_id}
-              className="bento-surface bento-surface-hover p-3 space-y-2"
+              accent={z.sensor_health === 'HEALTHY' ? 'emerald' : 'rose'}
+              dotDuration={`${6 + idx * 1.5}s`}
+              innerClassName="p-3 space-y-2 flex flex-col justify-between"
             >
               <div className="flex items-center justify-between text-[10px] font-mono">
                 <span className="text-[#71717A]">NODE-ESP32-0{idx + 1}</span>
@@ -521,7 +554,7 @@ export const OverviewDashboard: React.FC<OverviewProps> = ({ status, zones, summ
                 <div className="text-xs font-semibold text-[#FAFAFA] truncate" title={z.name}>
                   {z.name}
                 </div>
-                <div className="text-lg font-mono font-bold tabular-nums text-[#FAFAFA] mt-0.5">
+                <div className="text-lg font-mono font-bold tabular-nums text-transparent bg-clip-text bg-[linear-gradient(45deg,#fff,#10b981)] mt-0.5">
                   {z.power_kw.toFixed(2)} <span className="text-[10px] font-normal text-[#71717A]">kW</span>
                 </div>
               </div>
@@ -548,7 +581,7 @@ export const OverviewDashboard: React.FC<OverviewProps> = ({ status, zones, summ
                   <span className="text-[#A1A1AA]">{z.voltage_v.toFixed(0)}V · {z.current_a.toFixed(1)}A</span>
                 </div>
               </div>
-            </div>
+            </SciFiCard>
           ))}
         </div>
       </div>

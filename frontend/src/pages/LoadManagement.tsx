@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { LoadItem } from '../types';
 import { sendLoadCommand } from '../services/api';
+import { SciFiCard } from '@/components/ui/moving-dot-card';
 
 interface LoadManagementProps {
   loads: LoadItem[];
@@ -101,7 +102,7 @@ export const LoadManagement: React.FC<LoadManagementProps> = ({ loads, onRefresh
       )}
 
       {/* Loads Table / Grid */}
-      <div className="bento-surface overflow-hidden">
+      <SciFiCard accent="cyan" dotDuration="14s" innerClassName="overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs font-mono">
             <thead className="bg-[#121215] text-[#71717A] uppercase tracking-wider text-[10px] border-b border-[#27272A]">
@@ -215,7 +216,7 @@ export const LoadManagement: React.FC<LoadManagementProps> = ({ loads, onRefresh
             </tbody>
           </table>
         </div>
-      </div>
+      </SciFiCard>
     </div>
   );
 };

@@ -7,7 +7,6 @@ import {
   DollarSign,
   Leaf,
   Clock,
-  ArrowRight,
   Sparkles,
 } from 'lucide-react';
 import {
@@ -20,6 +19,7 @@ import {
   CartesianGrid,
 } from 'recharts';
 import { DailyAnalyticsSummary } from '../types';
+import { SciFiCard } from '@/components/ui/moving-dot-card';
 
 interface LoadSchedulerProps {
   summary: DailyAnalyticsSummary | null;
@@ -101,8 +101,8 @@ export const LoadScheduler: React.FC<LoadSchedulerProps> = ({ summary }) => {
           </p>
         </div>
 
-        {/* Beta Weight Slider Bento Box */}
-        <div className="bento-surface rounded-md px-3 py-1.5 flex items-center space-x-3 text-xs border border-[#27272A]">
+        {/* Beta Weight Slider SciFiCard */}
+        <SciFiCard accent="cyan" dotDuration="9s" innerClassName="px-3 py-1.5 flex items-center space-x-3 text-xs">
           <div className="flex items-center space-x-1.5 text-zinc-400 font-mono text-[11px]">
             <Sliders className="h-3.5 w-3.5 text-cyan-400" />
             <span>WEIGHT (β):</span>
@@ -121,17 +121,19 @@ export const LoadScheduler: React.FC<LoadSchedulerProps> = ({ summary }) => {
             <span className="text-zinc-600 mx-1">/</span>
             <span className="text-emerald-400 font-medium">{((1 - betaWeight) * 100).toFixed(0)}% CO2</span>
           </div>
-        </div>
+        </SciFiCard>
       </div>
 
-      {/* Deferrable Loads Bento Grid */}
+      {/* Deferrable Loads Sci-Fi Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        {deferrableLoads.map((dload) => {
+        {deferrableLoads.map((dload, idx) => {
           const Icon = dload.icon;
           return (
-            <div
+            <SciFiCard
               key={dload.id}
-              className="bento-surface rounded-lg p-3.5 space-y-3 border border-[#27272A] border-t-white/[0.08]"
+              accent="cyan"
+              dotDuration={`${7 + idx * 1.5}s`}
+              innerClassName="p-3.5 space-y-3"
             >
               <div className="flex items-start justify-between">
                 <div className="flex items-center space-x-2.5">
@@ -149,7 +151,7 @@ export const LoadScheduler: React.FC<LoadSchedulerProps> = ({ summary }) => {
               </div>
 
               {/* Specs Grid */}
-              <div className="grid grid-cols-2 gap-2 font-mono text-xs bg-[#09090B] p-2.5 rounded-md border border-[#27272A]">
+              <div className="grid grid-cols-2 gap-2 font-mono text-xs bg-[#09090B]/80 p-2.5 rounded-md border border-[#27272A]">
                 <div>
                   <span className="text-zinc-500 text-[10px] block uppercase">Rated Power</span>
                   <div className="font-semibold text-zinc-100 tabular-nums">{dload.rated_power_kw} kW</div>
@@ -194,15 +196,15 @@ export const LoadScheduler: React.FC<LoadSchedulerProps> = ({ summary }) => {
                   <span className="text-emerald-400 font-semibold tabular-nums">{dload.carbon_avoided}</span>
                 </div>
               </div>
-            </div>
+            </SciFiCard>
           );
         })}
       </div>
 
-      {/* Grid Signals: Tariff and Carbon Curves */}
+      {/* Grid Signals: Tariff and Carbon Curves (SciFiCard) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         {/* Tariff Profile Chart */}
-        <div className="bento-surface rounded-lg p-3.5 space-y-2 border border-[#27272A] border-t-white/[0.08]">
+        <SciFiCard accent="amber" dotDuration="11s" innerClassName="p-3.5 space-y-2">
           <div className="flex items-center justify-between border-b border-[#27272A] pb-2">
             <div>
               <h3 className="font-mono text-xs font-semibold text-zinc-100 uppercase tracking-wider flex items-center space-x-1.5">
@@ -246,10 +248,10 @@ export const LoadScheduler: React.FC<LoadSchedulerProps> = ({ summary }) => {
               </LineChart>
             </ResponsiveContainer>
           </div>
-        </div>
+        </SciFiCard>
 
         {/* Carbon Intensity Profile Chart */}
-        <div className="bento-surface rounded-lg p-3.5 space-y-2 border border-[#27272A] border-t-white/[0.08]">
+        <SciFiCard accent="emerald" dotDuration="12s" innerClassName="p-3.5 space-y-2">
           <div className="flex items-center justify-between border-b border-[#27272A] pb-2">
             <div>
               <h3 className="font-mono text-xs font-semibold text-zinc-100 uppercase tracking-wider flex items-center space-x-1.5">
@@ -293,7 +295,7 @@ export const LoadScheduler: React.FC<LoadSchedulerProps> = ({ summary }) => {
               </LineChart>
             </ResponsiveContainer>
           </div>
-        </div>
+        </SciFiCard>
       </div>
     </div>
   );

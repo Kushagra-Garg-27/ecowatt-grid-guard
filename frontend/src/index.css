@@ -41,6 +41,124 @@
   border-color: #3f3f46;
 }
 
+/* 21st.dev Moving Dot Card & Sci-Fi Radar Surfaces */
+@keyframes scifiTracerMotion {
+  from {
+    offset-distance: 0%;
+  }
+  to {
+    offset-distance: 100%;
+  }
+}
+
+.scifi-card-outer {
+  border-radius: 10px;
+  padding: 1px;
+  position: relative;
+  overflow: visible;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5);
+}
+
+.scifi-accent-default {
+  background: radial-gradient(320px at 0% 0%, rgba(255, 255, 255, 0.35), #0c0d0d);
+}
+
+.scifi-accent-cyan {
+  background: radial-gradient(320px at 0% 0%, rgba(0, 170, 255, 0.6), #0c0d0d);
+}
+
+.scifi-accent-emerald {
+  background: radial-gradient(320px at 0% 0%, rgba(16, 185, 129, 0.6), #0c0d0d);
+}
+
+.scifi-accent-rose {
+  background: radial-gradient(320px at 0% 0%, rgba(244, 63, 94, 0.65), #0c0d0d);
+}
+
+.scifi-accent-amber {
+  background: radial-gradient(320px at 0% 0%, rgba(245, 158, 11, 0.6), #0c0d0d);
+}
+
+.scifi-card-inner {
+  background: radial-gradient(360px at 0% 0%, #1c1d22, #0c0d0d);
+  border: 1px solid #202222;
+  border-radius: 9px;
+  position: relative;
+  overflow: hidden;
+  height: 100%;
+  width: 100%;
+}
+
+.scifi-tracer-dot {
+  aspect-ratio: 1;
+  z-index: 10;
+  border-radius: 9999px;
+  width: 5px;
+  height: 5px;
+  position: absolute;
+  pointer-events: none;
+  offset-path: rect(0 100% 100% 0 round 10px);
+  animation: scifiTracerMotion 8s linear infinite;
+  box-shadow: 0 0 10px currentColor;
+  background-color: currentColor;
+}
+
+.scifi-ray {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 220px;
+  height: 45px;
+  border-radius: 100px;
+  background-color: #c7c7c7;
+  opacity: 0.18;
+  filter: blur(12px);
+  transform-origin: 10% 50%;
+  transform: rotate(35deg);
+  pointer-events: none;
+  box-shadow: 0 0 45px #fff;
+}
+
+.scifi-reticle-top {
+  position: absolute;
+  top: 10%;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.2) 20%, rgba(29, 31, 31, 0.4) 70%);
+  pointer-events: none;
+}
+
+.scifi-reticle-bottom {
+  position: absolute;
+  bottom: 10%;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: rgba(44, 44, 44, 0.5);
+  pointer-events: none;
+}
+
+.scifi-reticle-left {
+  position: absolute;
+  top: 0;
+  left: 10%;
+  width: 1px;
+  height: 100%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.15) 20%, rgba(34, 36, 36, 0.4) 70%);
+  pointer-events: none;
+}
+
+.scifi-reticle-right {
+  position: absolute;
+  top: 0;
+  right: 10%;
+  width: 1px;
+  height: 100%;
+  background: rgba(44, 44, 44, 0.5);
+  pointer-events: none;
+}
+
 /* Tactile Industrial Scrollbars */
 ::-webkit-scrollbar {
   width: 5px;

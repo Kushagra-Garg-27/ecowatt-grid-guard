@@ -12,6 +12,7 @@ import {
   Compass,
 } from 'lucide-react';
 import { ZoneSummary, LoadItem } from '../types';
+import { SciFiCard } from '@/components/ui/moving-dot-card';
 
 interface BuildingZonesProps {
   zones: ZoneSummary[];
@@ -63,9 +64,11 @@ export const BuildingZones: React.FC<BuildingZonesProps> = ({ zones, loads }) =>
           const occPct = Math.round((zone.occupancy / zone.max_occupancy) * 100);
 
           return (
-            <div
+            <SciFiCard
               key={zone.zone_id}
-              className="bento-surface bento-surface-hover p-4 space-y-3"
+              accent={zone.sensor_health === 'HEALTHY' ? 'emerald' : 'rose'}
+              dotDuration={`${6 + idx * 1.5}s`}
+              innerClassName="p-4 space-y-3"
             >
               {/* Header */}
               <div className="flex items-start justify-between">
@@ -96,13 +99,13 @@ export const BuildingZones: React.FC<BuildingZonesProps> = ({ zones, loads }) =>
                 </div>
               </div>
 
-              {/* Power Banner */}
-              <div className="bg-[#121215] border border-[#27272A] rounded p-2.5 flex items-center justify-between">
+              {/* Power Banner with Sci-Fi Gradient */}
+              <div className="bg-[#121215]/80 border border-[#27272A] rounded p-2.5 flex items-center justify-between">
                 <div className="flex items-center space-x-1.5 text-[#71717A] text-[11px] font-mono">
                   <Zap className="h-3.5 w-3.5 text-emerald-400" />
                   <span>ACTIVE DEMAND</span>
                 </div>
-                <div className="text-lg font-mono font-bold tabular-nums text-[#FAFAFA]">
+                <div className="text-xl font-mono font-bold tabular-nums text-transparent bg-clip-text bg-[linear-gradient(45deg,#fff,#10b981)]">
                   {zone.power_kw.toFixed(2)} <span className="text-[11px] font-normal text-[#71717A]">kW</span>
                 </div>
               </div>
@@ -110,7 +113,7 @@ export const BuildingZones: React.FC<BuildingZonesProps> = ({ zones, loads }) =>
               {/* Sensor Readouts Grid */}
               <div className="grid grid-cols-2 gap-2 text-xs font-mono">
                 {/* Occupancy */}
-                <div className="bg-[#121215] border border-[#27272A] rounded p-2 space-y-1">
+                <div className="bg-[#121215]/80 border border-[#27272A] rounded p-2 space-y-1">
                   <div className="flex items-center justify-between text-[#71717A] text-[10px]">
                     <span className="flex items-center space-x-1">
                       <Users className="h-3 w-3 text-cyan-400" />
@@ -127,7 +130,7 @@ export const BuildingZones: React.FC<BuildingZonesProps> = ({ zones, loads }) =>
                 </div>
 
                 {/* Temperature */}
-                <div className="bg-[#121215] border border-[#27272A] rounded p-2 space-y-1">
+                <div className="bg-[#121215]/80 border border-[#27272A] rounded p-2 space-y-1">
                   <div className="flex items-center justify-between text-[#71717A] text-[10px]">
                     <span className="flex items-center space-x-1">
                       <Thermometer className="h-3 w-3 text-amber-400" />
@@ -141,7 +144,7 @@ export const BuildingZones: React.FC<BuildingZonesProps> = ({ zones, loads }) =>
                 </div>
 
                 {/* Voltage & Current */}
-                <div className="bg-[#121215] border border-[#27272A] rounded p-2 space-y-1">
+                <div className="bg-[#121215]/80 border border-[#27272A] rounded p-2 space-y-1">
                   <div className="flex items-center justify-between text-[#71717A] text-[10px]">
                     <span className="flex items-center space-x-1">
                       <Gauge className="h-3 w-3 text-indigo-400" />
@@ -155,7 +158,7 @@ export const BuildingZones: React.FC<BuildingZonesProps> = ({ zones, loads }) =>
                 </div>
 
                 {/* HVAC & Lighting */}
-                <div className="bg-[#121215] border border-[#27272A] rounded p-2 space-y-1">
+                <div className="bg-[#121215]/80 border border-[#27272A] rounded p-2 space-y-1">
                   <div className="flex items-center justify-between text-[#71717A] text-[10px]">
                     <span className="flex items-center space-x-1">
                       <Sun className="h-3 w-3 text-yellow-400" />
@@ -177,7 +180,7 @@ export const BuildingZones: React.FC<BuildingZonesProps> = ({ zones, loads }) =>
                   {zoneLoads.map((load) => (
                     <div
                       key={load.id}
-                      className="flex items-center justify-between text-[11px] bg-[#121215] px-2 py-1 rounded border border-[#27272A]"
+                      className="flex items-center justify-between text-[11px] bg-[#121215]/80 px-2 py-1 rounded border border-[#27272A]"
                     >
                       <div className="flex items-center space-x-1.5 truncate">
                         <span
@@ -200,7 +203,7 @@ export const BuildingZones: React.FC<BuildingZonesProps> = ({ zones, loads }) =>
                   ))}
                 </div>
               </div>
-            </div>
+            </SciFiCard>
           );
         })}
       </div>

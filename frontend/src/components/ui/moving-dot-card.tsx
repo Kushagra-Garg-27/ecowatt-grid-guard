@@ -1,6 +1,115 @@
 import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 
+export interface SciFiCardProps extends React.HTMLAttributes<HTMLDivElement> {
+  /** Additional classes applied to the inner card content wrapper */
+  innerClassName?: string;
+  /** Whether to render the moving tracer dot along the perimeter */
+  dot?: boolean;
+  /** Custom color for the tracer dot (defaults to accent color or white) */
+  dotColor?: string;
+  /** Animation duration for one perimeter loop (e.g., '6s', '8s') */
+  dotDuration?: string;
+  /** Whether to render the angled glass light ray in the top-left */
+  glowRay?: boolean;
+  /** Whether to render the sci-fi reticle crosshair lines */
+  crosshairs?: boolean;
+  /** Accent border gradient variant */
+  accent?: "default" | "cyan" | "emerald" | "rose" | "amber";
+  children?: React.ReactNode;
+}
+
+export const SciFiCard = React.forwardRef<HTMLDivElement, SciFiCardProps>(
+  (
+    {
+      className,
+      innerClassName,
+      dot = true,
+      dotColor,
+      dotDuration = "7s",
+      glowRay = true,
+      crosshairs = true,
+      accent = "default",
+      children,
+      style,
+      ...props
+    },
+    ref
+  ) => {
+    const accentClass =
+      accent === "emerald"
+        ? "scifi-accent-emerald"
+        : accent === "rose"
+        ? "scifi-accent-rose"
+        : accent === "cyan"
+        ? "scifi-accent-cyan"
+        : accent === "amber"
+        ? "scifi-accent-amber"
+        : "scifi-accent-default";
+
+    const defaultDotColor =
+      dotColor ||
+      (accent === "emerald"
+        ? "#10B981"
+        : accent === "rose"
+        ? "#F43F5E"
+        : accent === "cyan"
+        ? "#00AAFF"
+        : accent === "amber"
+        ? "#F59E0B"
+        : "#FFFFFF");
+
+    return (
+      <div
+        ref={ref}
+        className={cn(
+          "scifi-card-outer relative select-none rounded-[10px] p-[1px] transition-all duration-300",
+          accentClass,
+          className
+        )}
+        style={style}
+        {...props}
+      >
+        {/* Animated Perimeter Tracer Dot */}
+        {dot && (
+          <div
+            className="scifi-tracer-dot"
+            style={{
+              color: defaultDotColor,
+              animationDuration: dotDuration,
+            }}
+          />
+        )}
+
+        {/* Inner Card Container */}
+        <div
+          className={cn(
+            "scifi-card-inner relative z-[1] w-full h-full rounded-[9px] overflow-hidden",
+            innerClassName
+          )}
+        >
+          {/* Angled Light Ray Refraction Sheen */}
+          {glowRay && <div className="scifi-ray" />}
+
+          {/* Sci-Fi Decorative Grid Crosshairs */}
+          {crosshairs && (
+            <>
+              <div className="scifi-reticle-top" />
+              <div className="scifi-reticle-bottom" />
+              <div className="scifi-reticle-left" />
+              <div className="scifi-reticle-right" />
+            </>
+          )}
+
+          {/* Card Content */}
+          <div className="relative z-[2] w-full h-full">{children}</div>
+        </div>
+      </div>
+    );
+  }
+);
+SciFiCard.displayName = "SciFiCard";
+
 export interface MovingDotCardProps extends React.HTMLAttributes<HTMLDivElement> {
   /** Target count value to animate up to */
   target?: number;
@@ -12,6 +121,10 @@ export interface MovingDotCardProps extends React.HTMLAttributes<HTMLDivElement>
   sublabel?: string;
   /** Optional custom formatter for the number */
   formatter?: (val: number) => string;
+  /** Accent variant for the glow and text */
+  accent?: "default" | "cyan" | "emerald" | "rose" | "amber";
+  /** Optional children override */
+  children?: React.ReactNode;
 }
 
 export const MovingDotCard: React.FC<MovingDotCardProps> = ({
@@ -20,7 +133,9 @@ export const MovingDotCard: React.FC<MovingDotCardProps> = ({
   label = "Views",
   sublabel,
   formatter,
+  accent = "cyan",
   className,
+  children,
   ...props
 }) => {
   const [count, setCount] = useState(0);
@@ -53,83 +168,49 @@ export const MovingDotCard: React.FC<MovingDotCardProps> = ({
 
   const displayCount = formatter ? formatter(count) : defaultFormat(count);
 
+  const textGradient =
+    accent === "emerald"
+      ? "bg-[linear-gradient(45deg,#fff,#10b981)]"
+      : accent === "rose"
+      ? "bg-[linear-gradient(45deg,#fff,#f43f5e)]"
+      : accent === "amber"
+      ? "bg-[linear-gradient(45deg,#fff,#f59e0b)]"
+      : "bg-[linear-gradient(45deg,#fff,#00aaff)]";
+
+  if (children) {
+    return (
+      <SciFiCard accent={accent} className={className} {...props}>
+        {children}
+      </SciFiCard>
+    );
+  }
+
   return (
-    <div
-      className={cn(
-        "relative rounded-[10px] w-[300px] h-[250px] p-[1px] select-none",
-        "bg-[radial-gradient(230px_at_0_0,#fff,#0c0d0d)] shadow-2xl",
-        className
-      )}
+    <SciFiCard
+      accent={accent}
+      className={cn("w-[300px] h-[250px]", className)}
+      innerClassName="flex flex-col justify-center items-center gap-2 p-4 text-center"
       {...props}
     >
-      <style>{`
-        @keyframes moveDot {
-          0%, 100% {
-            top: 10%;
-            right: 10%;
-          }
-          25% {
-            top: 10%;
-            right: calc(100% - 35px);
-          }
-          50% {
-            top: calc(100% - 30px);
-            right: calc(100% - 35px);
-          }
-          75% {
-            top: calc(100% - 30px);
-            right: 10%;
-          }
-        }
-        .moving-dot-tracer {
-          aspect-ratio: 1;
-          z-index: 2;
-          background-color: #fff;
-          border-radius: 9999px;
-          width: 5px;
-          animation: 6s linear infinite moveDot;
-          position: absolute;
-          box-shadow: 0 0 10px #fff;
-        }
-      `}</style>
-
-      {/* Animated Dot traversing the perimeter */}
-      <div className="moving-dot-tracer" />
-
-      {/* Inner Card Container */}
-      <div className="relative z-[1] w-full h-full p-2.5 rounded-[9px] flex flex-col justify-center items-center gap-2 border border-[#202222] bg-[radial-gradient(280px_at_0_0,#444,#0c0d0d)] overflow-hidden">
-        {/* Angled Light Ray Highlight */}
-        <div
-          className="absolute top-0 left-0 w-[220px] h-[45px] rounded-[100px] bg-[#c7c7c7] opacity-40 blur-[10px] shadow-[0_0_50px_#fff]"
-          style={{
-            transformOrigin: "10%",
-            transform: "rotate(40deg)",
-          }}
-        />
-
-        {/* Counter Display with Cyberpunk Gradient */}
-        <div className="text-transparent bg-clip-text bg-[linear-gradient(45deg,#fff,#00aaff)] text-[3.25rem] font-bold font-mono tracking-tight leading-none tabular-nums z-[2]">
-          {displayCount}
-        </div>
-
-        {/* Label */}
-        <div className="text-[#cccccc] uppercase tracking-[1px] text-sm font-medium font-mono z-[2]">
-          {label}
-        </div>
-
-        {sublabel && (
-          <div className="text-[#71717a] text-[11px] font-mono tracking-wide -mt-1 z-[2]">
-            {sublabel}
-          </div>
+      <div
+        className={cn(
+          "text-transparent bg-clip-text text-[3.25rem] font-bold font-mono tracking-tight leading-none tabular-nums",
+          textGradient
         )}
-
-        {/* Sci-Fi Decorative Grid Crosshairs */}
-        <div className="absolute top-[10%] left-0 w-full h-[1px] bg-[linear-gradient(90deg,#888_30%,#1d1f1f_70%)] opacity-80" />
-        <div className="absolute bottom-[10%] left-0 w-full h-[1px] bg-[#2c2c2c] opacity-80" />
-        <div className="absolute top-0 left-[10%] w-[1px] h-full bg-[linear-gradient(#747474_30%,#222424_70%)] opacity-80" />
-        <div className="absolute top-0 right-[10%] w-[1px] h-full bg-[#2c2c2c] opacity-80" />
+      >
+        {displayCount}
       </div>
-    </div>
+
+      <div className="text-[#cccccc] uppercase tracking-[1px] text-sm font-medium font-mono">
+        {label}
+      </div>
+
+      {sublabel && (
+        <div className="text-[#71717a] text-[11px] font-mono tracking-wide -mt-1">
+          {sublabel}
+        </div>
+      )}
+    </SciFiCard>
   );
 };
 
