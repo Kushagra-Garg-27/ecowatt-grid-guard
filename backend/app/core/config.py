@@ -59,10 +59,26 @@ class Settings(BaseSettings):
     CURRENCY_CODE: str = "INR"
 
     # Carbon Accounting Parameters
-    CARBON_ACCOUNTING_MODE: str = "MODELED_DIURNAL"  # "MODELED_DIURNAL" or "CONSTANT_CEA"
+    CARBON_ACCOUNTING_MODE: str = "MODELED_DIURNAL"  # "MODELED_DIURNAL", "CEA_WEIGHTED_AVERAGE" (or "CONSTANT_CEA"), "CEA_COMBINED_MARGIN", "CEA_OPERATING_MARGIN"
     CEA_ANNUAL_GRID_FACTOR_G_PER_KWH: float = 716.0  # CEA India National Grid Baseline FY 2022-23 gross generation average
     CEA_COMBINED_MARGIN_G_PER_KWH: float = 785.0     # CEA India Combined Margin (CM) factor
     CEA_OPERATING_MARGIN_G_PER_KWH: float = 820.0    # CEA India Operating Margin (OM) factor
+
+    @field_validator("CARBON_ACCOUNTING_MODE")
+    @classmethod
+    def validate_carbon_mode(cls, v: str) -> str:
+        allowed = {
+            "MODELED_DIURNAL",
+            "CEA_WEIGHTED_AVERAGE",
+            "CONSTANT_CEA",
+            "CONSTANT_CEA_WEIGHTED_AVG",
+            "CEA_COMBINED_MARGIN",
+            "CEA_OPERATING_MARGIN",
+        }
+        v_upper = v.upper().strip()
+        if v_upper not in allowed:
+            raise ValueError(f"Invalid CARBON_ACCOUNTING_MODE '{v}'. Allowed: {sorted(allowed)}")
+        return v_upper
 
     # Load Priority Score Weights (must sum to 1.0)
     WEIGHT_SUITABILITY: float = 0.40

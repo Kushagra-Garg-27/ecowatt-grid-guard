@@ -119,6 +119,8 @@ def test_nodered_javascript_functions_execution(nodered_flows):
     assert res_crit[0] is not None, "Critical load curtailment was not intercepted!"
     assert res_crit[0]["payload"]["violation"] == "SECURITY_AUDIT_FAIL"
     assert res_crit[0]["payload"]["load_id"] == "srv_it_rack_1"
+    # Ensure unauthorized commands are strictly blocked from output 1 (actuator pass-through path)
+    assert res_crit[1] is None, "Unauthorized critical load command must NOT be emitted to output 1!"
 
     # 4. Test Critical Load Safety Auditor Permitting Flexible Load
     flex_cmd = {
@@ -128,7 +130,7 @@ def test_nodered_javascript_functions_execution(nodered_flows):
     }
     res_flex = execute_js_node(auditor_code, flex_cmd, topic="ecowatt/load/cls_light_main/command")
     assert res_flex[0] is None, "Flexible load should not be flagged as violation!"
-    assert res_flex[1] is not None
+    assert res_flex[1] is not None, "Permitted flexible command must be forwarded to output 1"
 
     # 5. Test Ack Latency & Health Tracker
     ack_payload = {
@@ -150,36 +152,69 @@ async def test_nodered_live_runtime_end_to_end():
     Live End-to-End Node-RED Runtime Integration Test:
     1. Boots embedded MQTT broker on port 1883.
     2. Launches actual Node-RED runtime (Node-RED v5.0.9).
-    3. Ingests nodered/flows.json and connects to MQTT broker.
-    4. Publishes demand violation (8.60 kW > 7.00 kW).
-    5. Confirms Node-RED runtime evaluates flow and publishes CRITICAL_DEMAND_EXCEEDANCE to ecowatt/alerts.
-    6. Publishes critical load curtailment attempt and confirms interception.
-    7. Gracefully tears down runtime and broker.
+    3. Actively checks process liveness and polls for HTTP/TCP socket readiness.
+    4. Ingests nodered/flows.json and connects to MQTT broker.
+    5. Publishes demand violation (8.60 kW > 7.00 kW).
+    6. Confirms Node-RED runtime evaluates flow and publishes CRITICAL_DEMAND_EXCEEDANCE to ecowatt/alerts.
+    7. Publishes critical load curtailment attempt and confirms security interception alert on ecowatt/alerts.
+    8. Confirms no unauthorized actuator command forwarding.
+    9. Guarantees clean teardown of process tree and broker even on failure.
     """
     # 1. Start Embedded Broker on standard port 1883
     broker = EmbeddedMQTTBroker(host="127.0.0.1", port=1883)
     started = await broker.start()
     assert started is True, "Failed to start embedded MQTT broker on port 1883"
 
-    # 2. Start Test MQTT Client to listen for Node-RED output alerts
+    # 2. Start Test MQTT Client to listen for Node-RED output alerts and commands
     received_alerts = []
+    received_actuator_cmds = []
     mqtt_client = MQTTManager(broker_host="127.0.0.1", broker_port=1883, client_id="test_nodered_verifier")
     mqtt_client.start()
     mqtt_client.subscribe("ecowatt/alerts", lambda t, p: received_alerts.append(p))
+    mqtt_client.subscribe("ecowatt/actuator/+", lambda t, p: received_actuator_cmds.append(p))
 
-    for _ in range(25):
+    for _ in range(30):
         if mqtt_client.is_connected:
             break
         await asyncio.sleep(0.1)
-    assert mqtt_client.is_connected is True
+    assert mqtt_client.is_connected is True, "Test MQTT client failed to connect to embedded broker"
 
-    # 3. Launch Node-RED Runtime Process
-    cmd = "npx.cmd --yes node-red --port 18883 --userDir nodered --no-telemetry nodered/flows.json"
+    # 3. Launch Node-RED Runtime Process on test port 18883
+    nodered_port = 18883
+    cmd = f"npx.cmd --yes node-red --port {nodered_port} --userDir nodered --no-telemetry nodered/flows.json"
     proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     try:
-        # Wait up to 10 seconds for Node-RED to boot and connect to MQTT broker
-        await asyncio.sleep(7.5)
+        # Actively poll for Node-RED readiness on port 18883 while monitoring process health
+        is_ready = False
+        for attempt in range(40):
+            # Check if process unexpectedly died
+            if proc.poll() is not None:
+                stdout_data, stderr_data = proc.communicate(timeout=2)
+                pytest.fail(
+                    f"Node-RED process terminated unexpectedly with code {proc.returncode}!\n"
+                    f"STDOUT: {stdout_data.decode('utf-8', errors='ignore')}\n"
+                    f"STDERR: {stderr_data.decode('utf-8', errors='ignore')}"
+                )
+
+            # Try establishing TCP connection to Node-RED HTTP port
+            try:
+                reader, writer = await asyncio.wait_for(
+                    asyncio.open_connection("127.0.0.1", nodered_port),
+                    timeout=0.5
+                )
+                writer.close()
+                await writer.wait_closed()
+                is_ready = True
+                break
+            except (ConnectionRefusedError, asyncio.TimeoutError, OSError):
+                await asyncio.sleep(0.5)
+
+        assert is_ready is True, f"Node-RED failed to bind and become ready on port {nodered_port} within 20s"
+        assert proc.poll() is None, "Node-RED process must remain alive after startup!"
+
+        # Allow an extra 3 seconds for Node-RED MQTT nodes to establish their MQTT broker connections
+        await asyncio.sleep(3.0)
 
         # 4. Publish Demand Exceedance Event to ecowatt/building/demand
         exceedance_event = {
@@ -193,7 +228,7 @@ async def test_nodered_live_runtime_end_to_end():
         assert published is True
 
         # Wait for Node-RED to process through Demand Threshold Evaluator and publish to ecowatt/alerts
-        for _ in range(30):
+        for _ in range(35):
             if any(a.get("alert") == "CRITICAL_DEMAND_EXCEEDANCE" for a in received_alerts):
                 break
             await asyncio.sleep(0.2)
@@ -213,7 +248,7 @@ async def test_nodered_live_runtime_end_to_end():
         }
         mqtt_client.publish("ecowatt/load/srv_it_rack_1/command", illegal_cmd)
 
-        for _ in range(30):
+        for _ in range(35):
             if any(a.get("violation") == "SECURITY_AUDIT_FAIL" for a in received_alerts):
                 break
             await asyncio.sleep(0.2)
@@ -224,8 +259,12 @@ async def test_nodered_live_runtime_end_to_end():
         assert sec_alert["load_id"] == "srv_it_rack_1"
         assert "cannot be curtailed" in sec_alert["message"]
 
+        # Confirm no illegal commands reached any actuator topic
+        assert len(received_actuator_cmds) == 0, "Unauthorized command must not be forwarded to actuators!"
+
     finally:
-        # 6. Teardown Process Tree on Windows
-        subprocess.run(["taskkill", "/F", "/T", "/PID", str(proc.pid)], capture_output=True)
+        # 6. Guaranteed Process Tree Teardown on Windows
+        if proc.pid:
+            subprocess.run(["taskkill", "/F", "/T", "/PID", str(proc.pid)], capture_output=True)
         mqtt_client.stop()
         await broker.stop()

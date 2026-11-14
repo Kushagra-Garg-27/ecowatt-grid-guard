@@ -7,7 +7,7 @@
 [![CoAP](https://img.shields.io/badge/CoAP-UDP_5683-FF6F00.svg)](https://aiocoap.readthedocs.io/)
 [![MQTT](https://img.shields.io/badge/MQTT-Mosquitto_1883-660066.svg?logo=eclipse-mosquitto&logoColor=white)](https://mosquitto.org/)
 [![Python](https://img.shields.io/badge/Python-3.12+-3776AB.svg?logo=python&logoColor=white)](https://www.python.org/)
-[![Tests](https://img.shields.io/badge/Pytest-23_Passed_100%25-brightgreen.svg)](docs/testing.md)
+[![Tests](https://img.shields.io/badge/Pytest-56_Passed_100%25-brightgreen.svg)](docs/testing.md)
 
 ---
 
@@ -151,7 +151,7 @@ Where:
 - $S_k$: Curtailment Suitability Index ($0.0 \le S_k \le 1.0$).
 - $Occ_j(t) / Occ_{max,j}$: Current occupancy headcount ratio in zone $j$.
 - $P_k(t) / P_{max}$: Current power consumption normalized by $P_{max} = 10.0\text{ kW}$.
-- $\text{Tariff}(t) / \text{Tariff}_{max}$: Current electricity tariff normalized by $\text{Tariff}_{max} = \$0.50/\text{kWh}$.
+- $\text{Tariff}(t) / \text{Tariff}_{max}$: Current electricity tariff normalized by $\text{Tariff}_{max} = ₹15.00/\text{kWh}$.
 - $w_s, w_o, w_p, w_t$: Non-negative weights summing strictly to $1.0$ (Default: $0.40, 0.20, 0.20, 0.20$).
 
 **Crucial Invariant**: Critical loads have $S_k = 0.0$ and return $LPS = 0.000$, excluding them from automatic curtailment queues.
@@ -192,7 +192,7 @@ Deadline-constrained scheduler for:
 $$\min \int_{t_{start}}^{t_{deadline}} \left[ \beta \cdot \frac{\text{Tariff}(t)}{\text{Tariff}_{max}} + (1 - \beta) \cdot \frac{\text{Carbon}(t)}{\text{Carbon}_{max}} \right] P_{load}(t) \, dt$$
 Subject to:
 - Required energy delivery completed before deadline.
-- Total building demand $+ P_{load} \le P_{threshold}$ to prevent artificial peak creation.
+- Total building demand $+ P_{load} \le P_{target} = 6.80\text{ kW}$ to strictly respect the configured demand target.
 
 ---
 
@@ -316,12 +316,13 @@ tests/test_unit_sustainability.py::test_threshold_exceedance_duration PASSED [10
 
 ### Actual Demonstration Scenario Output (`peak_demand_event`):
 - **Baseline Peak Demand**: $8.60\text{ kW}$
-- **Configured Threshold**: $7.00\text{ kW}$ (Target Demand: $6.80\text{ kW}$)
-- **Optimized Peak Demand**: **$6.62\text{ kW}$** (Target Achieved: **TRUE**, strictly $\le 6.80\text{ kW}$)
-- **Peak Shaving**: **$1.98\text{ kW}$** ($23.0\%$ reduction)
-- **Baseline Cost**: ₹$989.89$ INR $\to$ **Optimized Cost**: ₹$972.62$ INR (Cost Saved: ₹$17.26$ INR / $1.7\%$)
-- **Avoided Carbon Emissions**: $0.22\text{ kg CO}_2$
-- **Shifted Energy**: $6.62\text{ kWh}$
+- **Configured Threshold**: $7.00\text{ kW}$ (Reserve Margin: $0.20\text{ kW}$)
+- **Target Demand**: $6.80\text{ kW}$
+- **Optimized Peak Demand**: **$6.79\text{ kW}$** (Target Achieved: **TRUE**, strictly $\le 6.80\text{ kW}$)
+- **Peak Shaving**: **$1.81\text{ kW}$** ($21.0\%$ reduction from baseline peak)
+- **Baseline Cost**: ₹989.89 INR $\to$ **Optimized Cost**: ₹972.62 INR (Cost Saved: ₹17.26 INR / $1.7\%$)
+- **Avoided Carbon Emissions**: $0.22\text{ kg CO}_2$ (Modeled Diurnal profile)
+- **Shifted Energy**: $6.30\text{ kWh}$
 - **Threshold Exceedance**: $120\text{ minutes baseline} \to 0\text{ minutes optimized}$
 - **Critical Load Interruptions**: **0 (Zero — 100% Guaranteed Protection)**
 

@@ -41,7 +41,7 @@ def generate_grid_carbon_intensity(
     """
     Grid Carbon Intensity (gCO2/kWh) for Environmental Impact Accounting.
 
-    Supports two operating modes:
+    Supports four operating methodologies derived from CEA India official publications & simulation models:
     1. 'MODELED_DIURNAL' (Default Simulation Assumption):
        A modeled synthetic diurnal profile reflecting operational dispatch dynamics:
        - Midday Solar Depression (11:00 - 15:00 IST): Renewable generation reduces thermal coal fraction,
@@ -50,37 +50,49 @@ def generate_grid_carbon_intensity(
          modeled with high thermal coal/gas peaker marginal dispatch at ~880.0 ± 35.0 gCO2/kWh.
        - Morning Ramp (07:00 - 10:00 IST): Modeled at ~760.0 ± 20.0 gCO2/kWh.
        - Overnight Baseload (22:00 - 06:00 IST): Modeled at ~710.0 ± 15.0 gCO2/kWh.
-       NOTE: This specific hourly curve is a simulation model assumption approximating diurnal grid
-       dispatch, not a directly measured real-time telemetry feed published by CEA.
+       NOTE: This specific hourly curve is a synthetic simulation model approximating diurnal grid
+       dispatch physics, not a directly published hourly CEA data feed.
 
-    2. 'CONSTANT_CEA' (Official Annual Benchmark):
-       Employs a static grid emission factor derived from the official Central Electricity Authority (CEA)
-       "CO2 Baseline Database for the Indian Power Sector" (Version 19.0, Nov 2023 / Version 20.0, Oct 2024):
-       - National Grid Weighted Average Gross Factor (FY 2022-23): 716.0 gCO2/kWh (0.716 kg CO2/kWh)
-       - National Grid Combined Margin (CM): 785.0 gCO2/kWh (0.785 kg CO2/kWh)
-       - National Grid Operating Margin (OM): 820.0 gCO2/kWh (0.820 kg CO2/kWh)
+    2. 'CEA_WEIGHTED_AVERAGE' (or 'CONSTANT_CEA'):
+       Official CEA "CO2 Baseline Database for the Indian Power Sector" (Version 19.0, Nov 2023 / Version 20.0, Oct 2024):
+       National Grid Weighted Average Gross Factor (FY 2022-23): 716.0 gCO2/kWh (0.716 kg CO2/kWh).
+
+    3. 'CEA_COMBINED_MARGIN':
+       Official CEA Baseline Database Combined Margin (CM) factor: 785.0 gCO2/kWh (0.785 kg CO2/kWh).
+       (Standard CDM methodology for grid-connected energy efficiency and renewable dispatch).
+
+    4. 'CEA_OPERATING_MARGIN':
+       Official CEA Baseline Database Operating Margin (OM) factor: 820.0 gCO2/kWh (0.820 kg CO2/kWh).
+       (Reflects the emission factor of operating marginal fossil-fuel power stations).
     """
-    if mode == "CONSTANT_CEA":
+    norm_mode = mode.upper().strip()
+    if norm_mode in ("CEA_WEIGHTED_AVERAGE", "CONSTANT_CEA", "CONSTANT_CEA_WEIGHTED_AVG"):
         return np.full(steps, round(float(constant_factor_g_per_kwh), 1))
-
-    # Default: Modeled diurnal simulation profile
-    carbon = np.zeros(steps)
-    for s in range(steps):
-        hour = (s * 15) / 60.0
-        if 11.0 <= hour < 15.0:
-            # Solar peak depression assumption
-            base = 580.0 + 25.0 * np.sin((hour - 11.0) / 4.0 * np.pi)
-        elif 17.0 <= hour < 21.0:
-            # Evening peaker thermal surge assumption
-            base = 880.0 + 35.0 * np.sin((hour - 17.0) / 4.0 * np.pi)
-        elif 7.0 <= hour < 10.0:
-            # Morning ramp assumption
-            base = 760.0 + 20.0 * np.sin((hour - 7.0) / 3.0 * np.pi)
-        else:
-            # Overnight baseline assumption
-            base = 710.0 + 15.0 * np.cos(hour / 24.0 * 2 * np.pi)
-        carbon[s] = round(base, 1)
-    return carbon
+    elif norm_mode == "CEA_COMBINED_MARGIN":
+        return np.full(steps, 785.0)
+    elif norm_mode == "CEA_OPERATING_MARGIN":
+        return np.full(steps, 820.0)
+    elif norm_mode == "MODELED_DIURNAL":
+        carbon = np.zeros(steps)
+        for s in range(steps):
+            hour = (s * 15) / 60.0
+            if 11.0 <= hour < 15.0:
+                # Solar peak depression assumption
+                base = 580.0 + 25.0 * np.sin((hour - 11.0) / 4.0 * np.pi)
+            elif 17.0 <= hour < 21.0:
+                # Evening peaker thermal surge assumption
+                base = 880.0 + 35.0 * np.sin((hour - 17.0) / 4.0 * np.pi)
+            elif 7.0 <= hour < 10.0:
+                # Morning ramp assumption
+                base = 760.0 + 20.0 * np.sin((hour - 7.0) / 3.0 * np.pi)
+            else:
+                # Overnight baseline assumption
+                base = 710.0 + 15.0 * np.cos(hour / 24.0 * 2 * np.pi)
+            carbon[s] = round(base, 1)
+        return carbon
+    else:
+        # Fallback to constant factor
+        return np.full(steps, round(float(constant_factor_g_per_kwh), 1))
 
 
 def generate_zone_occupancy_profiles(steps: int = 96, seed: int = 42) -> Dict[str, np.ndarray]:

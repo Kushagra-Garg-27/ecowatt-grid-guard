@@ -69,9 +69,22 @@ float currentOperatingLevel      = 1.0;  // 1.0 = 100% full power
 WiFiClient espClient;
 PubSubClient mqttClient(espClient);
 
-// Pending ACK buffer for offline reconnect recovery
+// =============================================================================
+// VOLATILE RAM-BASED FIFO ACK BUFFER FOR OFFLINE MQTT RECOVERY
+// =============================================================================
+// LIMITATION NOTICE:
+// This queue resides in volatile ESP32 SRAM. It provides resilience against transient
+// Wi-Fi or MQTT broker disconnections, but does NOT survive device reboots, brownouts,
+// or watchdog resets. Durable persistent zero-loss storage would require non-volatile
+// flash (ESP32 NVS or LittleFS ring buffer), which is pending physical field qualification.
+//
+// OVERFLOW POLICY:
+// FIFO Oldest-Drop: When the buffer reaches capacity (MAX_PENDING_ACKS = 16) and a new
+// unacknowledged event occurs, the oldest unacknowledged event at ackBufferTail is evicted.
+// The droppedAckCount diagnostic counter is incremented, and an explicit serial warning
+// is emitted. The newly arriving event is then enqueued at ackBufferHead.
+// =============================================================================
 struct PendingAck {
-    bool active;
     char commandId[36];
     char status[32];
     float operatingLevel;
@@ -79,8 +92,13 @@ struct PendingAck {
     float latencyMs;
     char timestamp[32];
 };
-const int MAX_PENDING_ACKS = 8;
+
+const int MAX_PENDING_ACKS = 16;
 PendingAck pendingAckBuffer[MAX_PENDING_ACKS];
+int ackBufferHead = 0;   // Next insertion index
+int ackBufferTail = 0;   // Next removal/drain index
+int ackBufferCount = 0;  // Current number of queued items
+uint32_t droppedAckCount = 0; // Total dropped ACKs due to buffer-full overflows
 
 void onMqttMessage(char* topic, byte* payload, unsigned int length);
 bool sendOrBufferAck(const char* cmdId, const char* status, float level, float powerKw, unsigned long latencyMs);
@@ -109,8 +127,11 @@ void setup() {
     ledcAttachPin(PWM_DIMMER_PIN, PWM_CHANNEL);
     ledcWrite(PWM_CHANNEL, 0);
 
-    // Initialize pending ACK buffer
-    for (int i = 0; i < MAX_PENDING_ACKS; i++) pendingAckBuffer[i].active = false;
+    // Initialize volatile pending ACK ring buffer
+    ackBufferHead = 0;
+    ackBufferTail = 0;
+    ackBufferCount = 0;
+    droppedAckCount = 0;
 
     Serial.println("\n=======================================================");
     Serial.println(" EcoWatt Grid Guard — ESP32 Actuator Node (Prototype) ");
@@ -340,51 +361,74 @@ bool sendOrBufferAck(const char* cmdId, const char* status, float level, float p
         return true;
     } else {
         Serial.printf("[MQTT WARN] Failed to publish ACK. Buffering for reconnect (cmd=%s)\n", cmdId);
-        // Store in pending buffer
-        for (int i = 0; i < MAX_PENDING_ACKS; i++) {
-            if (!pendingAckBuffer[i].active) {
-                pendingAckBuffer[i].active = true;
-                strncpy(pendingAckBuffer[i].commandId, cmdId, sizeof(pendingAckBuffer[i].commandId) - 1);
-                strncpy(pendingAckBuffer[i].status, status, sizeof(pendingAckBuffer[i].status) - 1);
-                pendingAckBuffer[i].operatingLevel = level;
-                pendingAckBuffer[i].estimatedPowerKw = powerKw;
-                pendingAckBuffer[i].latencyMs = (float)latencyMs;
-                strncpy(pendingAckBuffer[i].timestamp, timestampStr.c_str(), sizeof(pendingAckBuffer[i].timestamp) - 1);
-                break;
-            }
+
+        // Detect full buffer condition and execute FIFO oldest-drop overflow policy
+        if (ackBufferCount >= MAX_PENDING_ACKS) {
+            droppedAckCount++;
+            Serial.printf("[ACK BUFFER OVERFLOW] Buffer full (%d/%d)! Evicting oldest unacknowledged ACK (cmd=%s). Total dropped: %lu\n",
+                          ackBufferCount, MAX_PENDING_ACKS, pendingAckBuffer[ackBufferTail].commandId, (unsigned long)droppedAckCount);
+            // Evict oldest by advancing tail
+            ackBufferTail = (ackBufferTail + 1) % MAX_PENDING_ACKS;
+            ackBufferCount--;
         }
+
+        // Enqueue new ACK at head
+        PendingAck& slot = pendingAckBuffer[ackBufferHead];
+        strncpy(slot.commandId, cmdId, sizeof(slot.commandId) - 1);
+        slot.commandId[sizeof(slot.commandId) - 1] = '\0';
+        strncpy(slot.status, status, sizeof(slot.status) - 1);
+        slot.status[sizeof(slot.status) - 1] = '\0';
+        slot.operatingLevel = level;
+        slot.estimatedPowerKw = powerKw;
+        slot.latencyMs = (float)latencyMs;
+        strncpy(slot.timestamp, timestampStr.c_str(), sizeof(slot.timestamp) - 1);
+        slot.timestamp[sizeof(slot.timestamp) - 1] = '\0';
+
+        ackBufferHead = (ackBufferHead + 1) % MAX_PENDING_ACKS;
+        ackBufferCount++;
+
+        Serial.printf("[ACK BUFFER] Queued cmd=%s (Buffer: %d/%d, Dropped: %lu)\n",
+                      cmdId, ackBufferCount, MAX_PENDING_ACKS, (unsigned long)droppedAckCount);
         return false;
     }
 }
 
 void flushPendingAcks() {
-    if (!mqttClient.connected()) return;
+    if (!mqttClient.connected() || ackBufferCount == 0) return;
 
     char ackTopic[64];
     snprintf(ackTopic, sizeof(ackTopic), "ecowatt/load/%s/ack", LOAD_ID);
 
-    for (int i = 0; i < MAX_PENDING_ACKS; i++) {
-        if (pendingAckBuffer[i].active) {
-            StaticJsonDocument<384> ackDoc;
-            ackDoc["command_id"]         = pendingAckBuffer[i].commandId;
-            ackDoc["load_id"]            = LOAD_ID;
-            ackDoc["status"]             = pendingAckBuffer[i].status;
-            ackDoc["operating_level"]    = pendingAckBuffer[i].operatingLevel;
-            ackDoc["estimated_power_kw"] = pendingAckBuffer[i].estimatedPowerKw;
-            ackDoc["actual_power_kw"]    = pendingAckBuffer[i].estimatedPowerKw;
-            ackDoc["is_measured_power"]  = false;
-            ackDoc["latency_ms"]         = pendingAckBuffer[i].latencyMs;
-            ackDoc["timestamp"]          = pendingAckBuffer[i].timestamp;
-            ackDoc["retransmitted"]      = true;
+    Serial.printf("[MQTT FLUSH] Retransmitting %d buffered ACKs upon reconnection (Historical dropped: %lu)...\n",
+                  ackBufferCount, (unsigned long)droppedAckCount);
 
-            char buffer[384];
-            size_t len = serializeJson(ackDoc, buffer, sizeof(buffer));
-            if (mqttClient.publish(ackTopic, buffer, len)) {
-                Serial.printf("[MQTT FLUSH] Retransmitted buffered ACK for cmd %s\n", pendingAckBuffer[i].commandId);
-                pendingAckBuffer[i].active = false;
-            } else {
-                break; // Still unable to publish, retry on next loop
-            }
+    while (ackBufferCount > 0 && mqttClient.connected()) {
+        PendingAck& ack = pendingAckBuffer[ackBufferTail];
+
+        StaticJsonDocument<384> ackDoc;
+        ackDoc["command_id"]           = ack.commandId;
+        ackDoc["load_id"]              = LOAD_ID;
+        ackDoc["status"]               = ack.status;
+        ackDoc["operating_level"]      = ack.operatingLevel;
+        ackDoc["estimated_power_kw"]   = ack.estimatedPowerKw;
+        ackDoc["actual_power_kw"]      = ack.estimatedPowerKw;
+        ackDoc["is_measured_power"]    = false;
+        ackDoc["latency_ms"]           = ack.latencyMs;
+        ackDoc["timestamp"]            = ack.timestamp;
+        ackDoc["retransmitted"]        = true;
+        ackDoc["buffer_dropped_total"] = droppedAckCount;
+
+        char buffer[384];
+        size_t len = serializeJson(ackDoc, buffer, sizeof(buffer));
+
+        if (mqttClient.publish(ackTopic, buffer, len)) {
+            Serial.printf("[MQTT FLUSH] Retransmitted cmd=%s (Remaining in buffer: %d)\n",
+                          ack.commandId, ackBufferCount - 1);
+            ackBufferTail = (ackBufferTail + 1) % MAX_PENDING_ACKS;
+            ackBufferCount--;
+        } else {
+            Serial.printf("[MQTT FLUSH WARN] Retransmission paused: broker unavailable. Retaining %d ACKs.\n", ackBufferCount);
+            break;
         }
     }
 }

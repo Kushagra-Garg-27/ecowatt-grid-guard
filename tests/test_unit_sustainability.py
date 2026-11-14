@@ -162,3 +162,60 @@ def test_constant_vs_modeled_carbon_calculations():
     assert summary_diurnal.carbon_avoided_kg > 0.0
     # Both calculations must be positive and within reasonable physical bounds (13-22 kg for 24 kWh)
     assert 13.0 <= summary_diurnal.carbon_avoided_kg <= 22.0
+
+
+def test_selectable_cea_carbon_methodologies():
+    """Verify that all supported official CEA accounting modes return their documented values."""
+    # 1. CEA Weighted Average (Gross Generation baseline FY 2022-23)
+    c_wavg = generate_grid_carbon_intensity(96, mode="CEA_WEIGHTED_AVERAGE")
+    assert np.all(c_wavg == 716.0)
+
+    # 2. CEA Combined Margin (CDM baseline methodology)
+    c_cm = generate_grid_carbon_intensity(96, mode="CEA_COMBINED_MARGIN")
+    assert np.all(c_cm == 785.0)
+
+    # 3. CEA Operating Margin (Marginal peaker generation)
+    c_om = generate_grid_carbon_intensity(96, mode="CEA_OPERATING_MARGIN")
+    assert np.all(c_om == 820.0)
+
+
+def test_time_aligned_carbon_factors_invariant():
+    """
+    Core Invariant: Baseline and optimized carbon emissions must always utilize
+    identical, time-aligned carbon factors at every time interval.
+    """
+    base_pwr = np.random.uniform(5.0, 9.0, 96)
+    opt_pwr = np.clip(base_pwr - np.random.uniform(0.0, 1.5, 96), 4.0, 8.0)
+    tariffs = np.full(96, 7.50)
+    carbon_diurnal = generate_grid_carbon_intensity(96, mode="MODELED_DIURNAL")
+
+    summary = SustainabilityCalculator.compute_daily_summary(
+        scenario_id="invariant_test",
+        scenario_name="Invariant Test",
+        baseline_power_kw=base_pwr,
+        optimized_power_kw=opt_pwr,
+        tariffs=tariffs,
+        carbon_intensity=carbon_diurnal,
+        shifted_energy_kwh=0.0,
+        control_operations_count=5,
+        actuator_failures_count=0,
+        critical_interruptions_count=0,
+    )
+
+    for iv in summary.intervals:
+        s = iv.step_index
+        expected_factor = carbon_diurnal[s]
+        assert abs(iv.carbon_intensity_g_per_kwh - expected_factor) < 1e-4
+
+        # Baseline carbon = baseline energy * factor
+        calc_base_g = (base_pwr[s] * 0.25) * expected_factor
+        assert abs(iv.baseline_carbon_g - calc_base_g) < 0.2
+
+        # Optimized carbon = optimized energy * factor
+        calc_opt_g = (opt_pwr[s] * 0.25) * expected_factor
+        assert abs(iv.optimized_carbon_g - calc_opt_g) < 0.2
+
+        # Carbon avoided = energy saved * factor
+        calc_avoided_g = ((base_pwr[s] - opt_pwr[s]) * 0.25) * expected_factor
+        assert abs(iv.carbon_avoided_g - calc_avoided_g) < 0.2
+

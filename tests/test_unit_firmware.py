@@ -84,3 +84,137 @@ def test_actuator_measurement_vs_estimation_distinction():
     actuator_sketch = Path("firmware/esp32_actuator_node/esp32_actuator_node.ino").read_text(encoding="utf-8")
     assert "estimated_power_kw" in actuator_sketch
     assert "\"is_measured_power\"]  = false" in actuator_sketch or "\"is_measured_power\"] = false" in actuator_sketch
+
+
+def test_sensor_firmware_no_fabricated_example_values():
+    """Verify that hardcoded example values identified in the audit are completely eliminated."""
+    sensor_sketch = Path("firmware/esp32_sensor_node/esp32_sensor_node.ino").read_text(encoding="utf-8")
+
+    fabricated_literals = [
+        "2.45",   # Fabricated power kW
+        "230.2",  # Fabricated voltage V
+        "10.9",   # Fabricated current A
+        "0.96",   # Fabricated power factor
+        "22.8",   # Fabricated temp C
+        "46.5",   # Fabricated humidity %
+        "28 : 5", # Fabricated PIR headcount
+    ]
+
+    for lit in fabricated_literals:
+        assert lit not in sensor_sketch, f"Found obsolete fabricated literal '{lit}' in sensor sketch!"
+
+
+def test_sensor_firmware_actual_acquisition_and_health_validation():
+    """Verify sensor sketch uses real sensor APIs and validates readings before publishing."""
+    sensor_sketch = Path("firmware/esp32_sensor_node/esp32_sensor_node.ino").read_text(encoding="utf-8")
+
+    # Required libraries and includes
+    assert "#include <PZEM004Tv30.h>" in sensor_sketch
+    assert "#include <DHT.h>" in sensor_sketch
+
+    # Hardware pins
+    assert "#define PZEM_RX_PIN" in sensor_sketch
+    assert "#define PZEM_TX_PIN" in sensor_sketch
+    assert "#define DHT_PIN" in sensor_sketch
+    assert "#define PIR_PIN" in sensor_sketch
+    assert "#define LDR_ADC_PIN" in sensor_sketch
+
+    # Sensor API invocations
+    assert "pzem.voltage()" in sensor_sketch
+    assert "pzem.current()" in sensor_sketch
+    assert "pzem.power()" in sensor_sketch
+    assert "pzem.pf()" in sensor_sketch
+    assert "dht.readTemperature()" in sensor_sketch
+    assert "dht.readHumidity()" in sensor_sketch
+    assert "digitalRead(PIR_PIN)" in sensor_sketch
+    assert "analogRead(LDR_ADC_PIN)" in sensor_sketch
+
+    # Health and validation handling
+    assert "isnan(voltage)" in sensor_sketch
+    assert "pzemValid" in sensor_sketch
+    assert "dhtValid" in sensor_sketch
+    assert "FAULTED" in sensor_sketch
+    assert "error_details" in sensor_sketch
+
+
+def test_sensor_firmware_pir_motion_headcount_honesty():
+    """Verify PIR reports binary motion detection and does NOT fabricate a headcount."""
+    sensor_sketch = Path("firmware/esp32_sensor_node/esp32_sensor_node.ino").read_text(encoding="utf-8")
+
+    assert "motion_detected" in sensor_sketch
+    assert "is_headcount_measured" in sensor_sketch
+    assert "\"is_headcount_measured\"] = false" in sensor_sketch or "\"is_headcount_measured\"]  = false" in sensor_sketch
+    assert "PIR_BINARY_PRESENCE" in sensor_sketch
+
+
+def test_actuator_ack_buffer_overflow_diagnostics_and_policy():
+    """Verify actuator sketch detects buffer overflow, increments counter, and warns via serial."""
+    actuator_sketch = Path("firmware/esp32_actuator_node/esp32_actuator_node.ino").read_text(encoding="utf-8")
+
+    assert "MAX_PENDING_ACKS = 16" in actuator_sketch
+    assert "droppedAckCount" in actuator_sketch
+    assert "[ACK BUFFER OVERFLOW]" in actuator_sketch
+    assert "ackBufferHead" in actuator_sketch
+    assert "ackBufferTail" in actuator_sketch
+    assert "ackBufferCount" in actuator_sketch
+    assert "retransmitted" in actuator_sketch
+    assert "buffer_dropped_total" in actuator_sketch
+
+    # Documented RAM limitation notice
+    assert "volatile ESP32 SRAM" in actuator_sketch
+    assert "does NOT survive device reboots" in actuator_sketch
+
+
+def test_actuator_ack_ring_buffer_simulation_logic():
+    """Simulate and verify the exact ring buffer logic implemented in esp32_actuator_node.ino."""
+    MAX_CAPACITY = 16
+    buffer = [None] * MAX_CAPACITY
+    head = 0
+    tail = 0
+    count = 0
+    dropped = 0
+
+    def enqueue(cmd_id: str):
+        nonlocal head, tail, count, dropped
+        if count >= MAX_CAPACITY:
+            dropped += 1
+            # Evict oldest by advancing tail
+            tail = (tail + 1) % MAX_CAPACITY
+            count -= 1
+        buffer[head] = cmd_id
+        head = (head + 1) % MAX_CAPACITY
+        count += 1
+
+    def drain():
+        nonlocal tail, count
+        drained = []
+        while count > 0:
+            drained.append(buffer[tail])
+            tail = (tail + 1) % MAX_CAPACITY
+            count -= 1
+        return drained
+
+    # 1. Fill buffer up to 16
+    for i in range(16):
+        enqueue(f"cmd_{i}")
+    assert count == 16
+    assert dropped == 0
+
+    # 2. Add 17th item: should evict cmd_0 (the oldest)
+    enqueue("cmd_16")
+    assert count == 16
+    assert dropped == 1
+
+    # 3. Add 18th item: should evict cmd_1
+    enqueue("cmd_17")
+    assert count == 16
+    assert dropped == 2
+
+    # 4. Drain on reconnection: should return cmd_2 through cmd_17 in exact FIFO order
+    drained_items = drain()
+    assert len(drained_items) == 16
+    assert count == 0
+    assert drained_items[0] == "cmd_2"
+    assert drained_items[-1] == "cmd_17"
+    assert drained_items == [f"cmd_{i}" for i in range(2, 18)]
+

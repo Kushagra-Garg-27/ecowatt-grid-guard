@@ -4,10 +4,17 @@
  * ==============================================================================
  * Target Hardware: ESP32-WROOM-32D / ESP32-DevKitC
  * Protocol: CoAP over UDP (RFC 7252) to EcoWatt Edge Gateway
- * Sensors:
- *   - AC Power Monitor: PZEM-004T v3.0 (UART2: GPIO16-RX, GPIO17-TX) [SENSOR MEASURED]
- *   - Environmental: DHT22 (GPIO4) & LDR Photoresistor (GPIO34 / ADC1) [SENSOR MEASURED]
- *   - PIR Motion: HC-SR501 (GPIO19) for Zone Occupancy Counting [SENSOR MEASURED]
+ *
+ * Transducers & Interfaces:
+ *   - AC Power Monitor: PZEM-004T v3.0 (UART2: GPIO16-RX2, GPIO17-TX2)
+ *   - Environmental: DHT22 (GPIO4) & LDR Photoresistor (GPIO34 / ADC1_CH6)
+ *   - Motion Presence: HC-SR501 PIR (GPIO19) [Binary motion detection only]
+ *
+ * Required Libraries:
+ *   - PZEM004Tv30 by Mandar Tare / Jakub Mandula (v1.1.2)
+ *   - DHT sensor library by Adafruit (v1.4.6)
+ *   - Adafruit Unified Sensor by Adafruit (v1.1.14)
+ *   - ArduinoJson by Benoit Blanchon (v6.21.3)
  *
  * NOTE: Reference prototype implementation pending physical field validation.
  * ==============================================================================
@@ -17,6 +24,8 @@
 #include <WiFiUdp.h>
 #include <ArduinoJson.h>
 #include <time.h>
+#include <PZEM004Tv30.h>
+#include <DHT.h>
 
 // --- Configuration Management ---
 #if __has_include("secrets.h")
@@ -49,21 +58,35 @@ const char* SENSOR_ID = "esp32_sensor_cls_01";
 const char* ZONE_ID   = "classroom";
 
 // --- Hardware Pin Definitions ---
-#define DHT_PIN        4
-#define PIR_PIN        19
-#define LDR_ADC_PIN    34
+#define PZEM_RX_PIN    16  // Connects to PZEM-004T TX
+#define PZEM_TX_PIN    17  // Connects to PZEM-004T RX
+#define DHT_PIN        4   // Connects to DHT22 Data pin (with 4.7k pullup)
+#define DHT_TYPE       DHT22
+#define PIR_PIN        19  // Connects to HC-SR501 Output
+#define LDR_ADC_PIN    34  // Connects to LDR / 10k resistor junction (ADC1)
 #define STATUS_LED_PIN 2
+
+// --- Sensor Objects ---
+HardwareSerial pzemSerial(2);
+PZEM004Tv30 pzem(pzemSerial, PZEM_RX_PIN, PZEM_TX_PIN);
+DHT dht(DHT_PIN, DHT_TYPE);
 
 // --- Timing Configuration ---
 const unsigned long TELEMETRY_INTERVAL_MS = 15000; // 15-second reporting cadence
 unsigned long lastTelemetryTime = 0;
 WiFiUDP udp;
 
+void connectWiFi();
+void emitAllTelemetry();
+String getISOTimestamp(bool& isSynced);
+bool sendCoAPPost(const char* resourcePath, const String& jsonPayload);
+
 void setup() {
     Serial.begin(115200);
     pinMode(STATUS_LED_PIN, OUTPUT);
     digitalWrite(STATUS_LED_PIN, LOW);
     pinMode(PIR_PIN, INPUT);
+    pinMode(LDR_ADC_PIN, INPUT);
 
     Serial.println("\n=======================================================");
     Serial.println(" EcoWatt Grid Guard — ESP32 Sensor Node (Prototype)   ");
@@ -79,6 +102,13 @@ void setup() {
             delay(100);
         }
     }
+
+    // Initialize Physical Sensor Hardware Interfaces
+    Serial.println("[PZEM] Initializing UART2 on GPIO16(RX) / GPIO17(TX)...");
+    pzemSerial.begin(9600, SERIAL_8N1, PZEM_RX_PIN, PZEM_TX_PIN);
+
+    Serial.println("[DHT22] Initializing digital sensor on GPIO4...");
+    dht.begin();
 
     connectWiFi();
 
@@ -186,7 +216,7 @@ bool sendCoAPPost(const char* resourcePath, const String& jsonPayload) {
     }
 
     udp.beginPacket(ECOWATT_GATEWAY_HOST, ECOWATT_COAP_PORT);
-    size_t written = udp.write(packet, idx);
+    udp.write(packet, idx);
     int ok = udp.endPacket();
 
     if (ok) {
@@ -202,43 +232,109 @@ void emitAllTelemetry() {
     bool timeSynced = false;
     String timestampStr = getISOTimestamp(timeSynced);
 
-    // 1. AC Power Telemetry (PZEM-004T v3.0 Sensor Measurement)
-    StaticJsonDocument<256> pwrDoc;
+    // =========================================================================
+    // 1. AC Power Telemetry: Direct Acquisition from PZEM-004T v3.0
+    // =========================================================================
+    float voltage   = pzem.voltage();
+    float current   = pzem.current();
+    float power_w   = pzem.power();
+    float pf        = pzem.pf();
+
+    bool pzemValid = (!isnan(voltage) && voltage >= 80.0 && voltage <= 300.0 &&
+                      !isnan(current) && current >= 0.0 && current <= 100.0 &&
+                      !isnan(power_w) && power_w >= 0.0 &&
+                      !isnan(pf) && pf >= 0.0 && pf <= 1.0);
+
+    StaticJsonDocument<384> pwrDoc;
     pwrDoc["sensor_id"] = SENSOR_ID;
-    pwrDoc["zone_id"] = ZONE_ID;
+    pwrDoc["zone_id"]   = ZONE_ID;
     pwrDoc["timestamp"] = timestampStr;
-    pwrDoc["sensor_health"] = timeSynced ? "HEALTHY" : "DEGRADED";
-    pwrDoc["is_measured_power"] = true; // Physical current transformer reading
-    pwrDoc["power_kw"] = 2.45;          // PZEM-004T: pzem.power() / 1000.0
-    pwrDoc["voltage_v"] = 230.2;        // PZEM-004T: pzem.voltage()
-    pwrDoc["current_a"] = 10.9;         // PZEM-004T: pzem.current()
-    pwrDoc["power_factor"] = 0.96;      // PZEM-004T: pzem.pf()
+
+    if (pzemValid) {
+        pwrDoc["is_measured_power"] = true; // Actual CT + voltage tap measurement
+        pwrDoc["sensor_health"]     = timeSynced ? "HEALTHY" : "DEGRADED";
+        pwrDoc["power_kw"]          = round((power_w / 1000.0) * 1000.0) / 1000.0;
+        pwrDoc["voltage_v"]         = round(voltage * 10.0) / 10.0;
+        pwrDoc["current_a"]         = round(current * 100.0) / 100.0;
+        pwrDoc["power_factor"]      = round(pf * 100.0) / 100.0;
+        pwrDoc["error_details"]     = nullptr;
+    } else {
+        // Sensor offline or read failure: do NOT publish fabricated measurements!
+        pwrDoc["is_measured_power"] = false;
+        pwrDoc["sensor_health"]     = "FAULTED";
+        pwrDoc["power_kw"]          = 0.0;
+        pwrDoc["voltage_v"]         = 0.0;
+        pwrDoc["current_a"]         = 0.0;
+        pwrDoc["power_factor"]      = 0.0;
+        pwrDoc["error_details"]     = "PZEM-004T acquisition failure: sensor offline or CRC error";
+        Serial.printf("[SENSOR WARN] PZEM-004T read failure! (V: %f, I: %f, P: %f)\n", voltage, current, power_w);
+    }
+
     String pwrPayload;
     serializeJson(pwrDoc, pwrPayload);
     sendCoAPPost("telemetry/power", pwrPayload);
 
-    // 2. Zone Occupancy Telemetry (PIR Sensor Motion Counter)
-    StaticJsonDocument<256> occDoc;
-    occDoc["sensor_id"] = SENSOR_ID;
-    occDoc["zone_id"] = ZONE_ID;
-    occDoc["timestamp"] = timestampStr;
-    occDoc["sensor_health"] = "HEALTHY";
-    occDoc["occupancy"] = digitalRead(PIR_PIN) ? 28 : 5;
-    occDoc["max_occupancy"] = 35;
-    occDoc["motion_detected"] = (bool)digitalRead(PIR_PIN);
+    // =========================================================================
+    // 2. Zone Occupancy & Motion Detection: Direct Reading from HC-SR501 PIR
+    // =========================================================================
+    int pirRaw = digitalRead(PIR_PIN);
+    bool motionDetected = (pirRaw == HIGH);
+
+    StaticJsonDocument<384> occDoc;
+    occDoc["sensor_id"]             = SENSOR_ID;
+    occDoc["zone_id"]               = ZONE_ID;
+    occDoc["timestamp"]             = timestampStr;
+    occDoc["sensor_health"]         = "HEALTHY";
+    occDoc["motion_detected"]       = motionDetected;
+    occDoc["pir_raw_state"]         = pirRaw;
+    // NOTE: HC-SR501 PIR provides binary infrared motion presence.
+    // It does NOT provide multi-person headcount. We report binary active state (1 or 0)
+    // and explicitly flag headcount as unmeasured pending optical counting hardware.
+    occDoc["occupancy"]             = motionDetected ? 1 : 0;
+    occDoc["max_occupancy"]         = 35;
+    occDoc["is_headcount_measured"] = false;
+    occDoc["occupancy_source"]      = "PIR_BINARY_PRESENCE";
+    occDoc["detection_notes"]       = "Binary PIR presence state. Accurate headcount requires optical sensor integration.";
+
     String occPayload;
     serializeJson(occDoc, occPayload);
     sendCoAPPost("telemetry/occupancy", occPayload);
 
-    // 3. Environmental Telemetry (DHT22 Temperature/Humidity & LDR Light Level)
-    StaticJsonDocument<256> envDoc;
+    // =========================================================================
+    // 3. Environmental Telemetry: Direct Acquisition from DHT22 & LDR ADC
+    // =========================================================================
+    float temperature = dht.readTemperature();
+    float humidity    = dht.readHumidity();
+    int ldrRaw        = analogRead(LDR_ADC_PIN); // 0 - 4095 on ESP32 ADC1
+
+    bool dhtValid = (!isnan(temperature) && temperature >= -40.0 && temperature <= 80.0 &&
+                     !isnan(humidity) && humidity >= 0.0 && humidity <= 100.0);
+
+    StaticJsonDocument<384> envDoc;
     envDoc["sensor_id"] = SENSOR_ID;
-    envDoc["zone_id"] = ZONE_ID;
+    envDoc["zone_id"]   = ZONE_ID;
     envDoc["timestamp"] = timestampStr;
-    envDoc["sensor_health"] = "HEALTHY";
-    envDoc["temperature_c"] = 22.8;
-    envDoc["humidity_pct"] = 46.5;
-    envDoc["lux_level"] = analogRead(LDR_ADC_PIN) / 4.0;
+
+    // Approximate illuminance calibration for 10k LDR divider:
+    float luxLevel = ((float)ldrRaw / 4095.0) * 1000.0;
+    envDoc["lux_level"]   = round(luxLevel * 10.0) / 10.0;
+    envDoc["ldr_raw_adc"] = ldrRaw;
+
+    if (dhtValid) {
+        envDoc["sensor_health"]       = "HEALTHY";
+        envDoc["is_sensor_available"] = true;
+        envDoc["temperature_c"]       = round(temperature * 10.0) / 10.0;
+        envDoc["humidity_pct"]        = round(humidity * 10.0) / 10.0;
+        envDoc["error_details"]       = nullptr;
+    } else {
+        envDoc["sensor_health"]       = "FAULTED";
+        envDoc["is_sensor_available"] = false;
+        envDoc["temperature_c"]       = 0.0;
+        envDoc["humidity_pct"]        = 0.0;
+        envDoc["error_details"]       = "DHT22 read failure: sensor disconnected or checksum error";
+        Serial.printf("[SENSOR WARN] DHT22 read failure! (T: %f, H: %f)\n", temperature, humidity);
+    }
+
     String envPayload;
     serializeJson(envDoc, envPayload);
     sendCoAPPost("telemetry/environment", envPayload);

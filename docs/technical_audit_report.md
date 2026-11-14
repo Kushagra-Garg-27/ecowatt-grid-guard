@@ -1,9 +1,9 @@
 # EcoWatt Grid Guard — Technical Audit, Defect Correction & Reliability Validation Report
 
-**Document Version:** 2.1.0  
+**Document Version:** 2.2.0  
 **Audit Date:** November 14, 2026  
 **Auditor:** Senior IoT Systems Architect, Optimization Engineer & Quality Auditor  
-**System Status:** **VERIFIED & OPERATIONAL** (49/49 Automated Tests Passing, 0 Critical Interruptions)
+**System Status:** **VERIFIED & OPERATIONAL** (56/56 Automated Tests Passing, 0 Critical Interruptions)
 
 ---
 
@@ -12,13 +12,33 @@
 This technical audit and defect correction pass was executed on the **EcoWatt Grid Guard** codebase located at:
 `C:\Users\kusha\Desktop\5th Sem\IOT and Sustain\iot project`
 
-The audit addressed high-priority architectural defects, edge cases, firmware security, and follow-up reliability concerns:
-1. **Firmware Security & Failsafe Initialization**: Removed all real-looking hardcoded credentials from sensor and actuator sketches. Introduced `secrets.example.h` templates, added `secrets.h` to `.gitignore`, and enforced compile-time (`#error`) and runtime startup guards. Fixed active-low relay boot behavior by forcing `digitalWrite(pin, HIGH)` prior to `pinMode(pin, OUTPUT)`, eliminating momentary contact closures during microcontroller boot.
-2. **Actuator Reliability & Telemetry Rigor**: Upgraded actuator firmware with UTC NTP clock synchronization and monotonic uptime fallback. Added strict command validation rejecting malformed payloads (`REJECTED_INVALID_PAYLOAD`), illegal actions (`REJECTED_UNSUPPORTED_ACTION`), and out-of-range levels (`REJECTED_INVALID_OPERATING_LEVEL`). Implemented a circular in-memory buffer (`pendingAckBuffer`) to prevent ACK loss during MQTT disconnections. Clearly distinguished estimated actuator power (`estimated_power_kw`, `is_measured_power = false`) from real sensor measurements.
-3. **CEA India Carbon Factoring & Diurnal Attribution**: Reconciled carbon accounting with official Central Electricity Authority (CEA) baselines (*CO2 Baseline Database for the Indian Power Sector, Version 19.0 FY 22-23 / Version 20.0 FY 23-24*). Documented the national average (716 gCO2/kWh) and combined margin (785 gCO2/kWh). Clearly attributed the time-varying profile (~580–880 gCO2/kWh) as a modeled diurnal simulation profile representing solar displacement and evening peakers, while providing configurable switching between `CONSTANT_CEA` and `MODELED_DIURNAL` modes.
-4. **Live Node-RED v5.0.9 Runtime Validation**: Executed automated end-to-end integration tests (`test_nodered_live_runtime_end_to_end`) launching the real Node-RED v5.0.9 engine over Node.js v24.19.0. Verified demand exceedance alert forwarding to `ecowatt/alerts` and confirmed critical-load command interception (`SECURITY_AUDIT_FAIL`).
-5. **Constrained Deferrable Load Scheduling**: Replaced heuristic soft-penalty scheduling with a strictly constrained optimization formulation. The scheduler guarantees that no scheduled interval violates the target demand limit ($P_{\text{target}} = 6.80\text{ kW}$), never silently truncates requested energy, explicitly reports feasibility status (`FULLY_SCHEDULED`, `PARTIALLY_SCHEDULED`, `INFEASIBLE`, `COMPLETED`, `MISSED_DEADLINE`), computes exact shortfall metrics, and prevents competing deferrable loads from stacking onto the same intervals.
-6. **Restoration Safety Against Actual Measured Demand**: Verified that progressive restoration queries the real-time actual measured demand directly from actuators/meters (`actuator_manager.get_total_building_power()`) rather than calculated estimates. The engine strictly enforces a safety ceiling ($P_{\text{target}} - 0.05\text{ kW} = 6.75\text{ kW}$), halting further restoration immediately if measured demand reaches this ceiling.
+The audit resolved key physical IoT firmware issues, buffer overflow vulnerabilities, carbon accounting reconciliations, runtime test reliability, and documentation consistency:
+1. **Physical Sensor Acquisition & Elimination of Fabricated Data**:
+   - Replaced all hardcoded example values (2.45 kW, 230.2 V, 10.9 A, 0.96 pf, 22.8°C, 46.5% RH, and 28 occupancy) in `firmware/esp32_sensor_node/esp32_sensor_node.ino` with actual driver calls for PZEM-004T v3.0 (`PZEM004Tv30.h` over UART2), DHT22 (`DHT.h` on GPIO4), HC-SR501 PIR on GPIO19, and LDR on GPIO34.
+   - Sensor readings are strictly validated before publication (`isnan()` guards, valid electrical/environmental physical bounds). Disconnected or failing sensors report `sensor_health: "FAULTED"`, `is_measured_power: false`, and detailed diagnostic error strings without publishing fabricated telemetry.
+   - PIR motion detection is reported honestly as binary presence (`motion_detected: true/false`, `occupancy: 1 or 0`) with `is_headcount_measured: false`, explicitly noting that multi-person headcount estimation requires optical break-beam or camera counting hardware (pending hardware integration).
+2. **Actuator MQTT ACK Buffer Overflow & Reconnection Draining**:
+   - Upgraded the volatile RAM ACK queue in `firmware/esp32_actuator_node/esp32_actuator_node.ino` to a 16-slot FIFO ring buffer (`MAX_PENDING_ACKS = 16`).
+   - Implemented explicit detection of buffer-full conditions, a dedicated diagnostic counter (`droppedAckCount`), and visible serial logging (`[ACK BUFFER OVERFLOW]`).
+   - Documented the FIFO oldest-drop overflow policy and added explicit notices that the buffer resides in volatile SRAM and does not survive microcontroller reboots.
+   - On broker reconnect, pending ACKs drain in FIFO order with `"retransmitted": true` and `"buffer_dropped_total": droppedAckCount`.
+3. **Reconciled CEA India Carbon Accounting Methodologies**:
+   - Implemented four independently selectable carbon accounting methodologies in `backend/app/core/config.py` and `backend/app/simulation/profiles.py`:
+     1. `MODELED_DIURNAL`: Hourly synthetic diurnal profile (~580–880 gCO2/kWh) modeling solar depression and evening coal/gas peakers.
+     2. `CEA_WEIGHTED_AVERAGE` (alias: `CONSTANT_CEA`): Official CEA Baseline Database (Version 19.0 / 20.0) national weighted average factor: 716.0 gCO2/kWh.
+     3. `CEA_COMBINED_MARGIN`: Official CEA Combined Margin factor: 785.0 gCO2/kWh (standard CDM methodology).
+     4. `CEA_OPERATING_MARGIN`: Official CEA Operating Margin factor: 820.0 gCO2/kWh (marginal operational dispatch).
+   - Core invariant verified: Baseline and optimized emissions always utilize the exact same time-aligned carbon factors at every interval.
+4. **Hardened Node-RED Runtime Live Tests**:
+   - In `tests/test_integration_nodered.py`, replaced static sleep waits with active TCP socket polling on port 18883 and child process liveness verification.
+   - If Node-RED fails to boot or exits unexpectedly, the test fails immediately with process exit codes, stdout, and stderr logs.
+   - Added assertions verifying that unauthorized commands targeting critical loads (`srv_it_rack_1`) trigger `SECURITY_AUDIT_FAIL` alerts and are strictly blocked from pass-through execution along actuator command paths.
+5. **Toolchain Compilation Audit**:
+   - Audited host environment for `arduino-cli`, `idf.py`, and `platformio`. Verified they are not present in PATH on this host; documented exact reproducible CLI commands and library dependencies in `firmware/README.md`.
+   - Maintained transparent boundary: all tests execute in a Software-in-the-Loop (SIL) socket environment; physical silicon hardware validation remains marked as not performed.
+6. **Documentation & Currency Normalization**:
+   - Reconciled all documentation across `docs/simulation.md`, `README.md`, `nodered/README.md`, and `firmware/README.md`.
+   - Enforced Indian Rupees (₹) consistently, removed obsolete USD tariff examples, clearly distinguished the 7.00 kW threshold from the 6.80 kW target demand, and updated test badges.
 
 
 ---
@@ -125,66 +145,72 @@ The audit addressed high-priority architectural defects, edge cases, firmware se
 
 ## 3. Automated Test Suite Results
 
-The comprehensive test suite was executed via `py -3.12 -m pytest tests -v`. All 49 tests passed:
+The comprehensive test suite was executed via `py -3.12 -m pytest tests -v`. All 56 tests passed:
 
 ```text
 ============================= test session starts =============================
 platform win32 -- Python 3.12.10, pytest-9.1.1, pluggy-1.7.0
 rootdir: C:\Users\kusha\Desktop\5th Sem\IOT and Sustain\iot project
-collected 49 items
+collected 56 items
 
-tests/test_integration_api.py::test_api_health PASSED                    [  2%]
-tests/test_integration_api.py::test_api_building_status PASSED           [  4%]
-tests/test_integration_api.py::test_api_zones PASSED                     [  6%]
-tests/test_integration_api.py::test_api_loads_and_critical_protection PASSED [  8%]
-tests/test_integration_api.py::test_api_threshold_configuration PASSED   [ 10%]
-tests/test_integration_api.py::test_api_weights_configuration PASSED     [ 12%]
-tests/test_integration_coap.py::test_real_coap_telemetry_flow PASSED     [ 14%]
-tests/test_integration_coap.py::test_aggregator_duplicate_and_stale_telemetry_handling PASSED [ 16%]
-tests/test_integration_coap.py::test_sensor_health_timeout_transitions PASSED [ 18%]
-tests/test_integration_coap.py::test_coap_client_timeout_fallback PASSED [ 20%]
-tests/test_integration_mqtt.py::test_mqtt_pub_sub_pipeline PASSED        [ 22%]
-tests/test_integration_nodered.py::test_nodered_flow_structure_and_broker_configuration PASSED [ 24%]
-tests/test_integration_nodered.py::test_nodered_javascript_functions_execution PASSED [ 26%]
-tests/test_integration_nodered.py::test_nodered_live_runtime_end_to_end PASSED [ 28%]
-tests/test_system_scenarios.py::test_peak_demand_demonstration_scenario PASSED [ 30%]
-tests/test_system_scenarios.py::test_all_ten_scenarios_execute_with_zero_critical_interruptions PASSED [ 32%]
-tests/test_system_scenarios.py::test_failed_actuator_acknowledgement_scenario PASSED [ 34%]
-tests/test_unit_actuator.py::test_critical_load_rejection PASSED         [ 36%]
-tests/test_unit_actuator.py::test_flexible_load_modulation PASSED        [ 38%]
-tests/test_unit_actuator.py::test_flexible_load_clamping_to_minimum PASSED [ 40%]
-tests/test_unit_actuator.py::test_simulated_actuator_failure PASSED      [ 42%]
-tests/test_unit_actuator.py::test_progressive_restoration_safety_margin_against_actual_measured_demand PASSED [ 44%]
-tests/test_unit_actuator.py::test_actuator_command_validation_rejections PASSED [ 46%]
-tests/test_unit_actuator.py::test_actuator_acknowledgement_fields PASSED [ 48%]
-tests/test_unit_firmware.py::test_firmware_no_hardcoded_credentials PASSED [ 51%]
-tests/test_unit_firmware.py::test_secrets_template_and_gitignore PASSED  [ 53%]
-tests/test_unit_firmware.py::test_firmware_compile_and_runtime_guards PASSED [ 55%]
-tests/test_unit_firmware.py::test_actuator_safe_relay_initialization PASSED [ 57%]
-tests/test_unit_firmware.py::test_actuator_measurement_vs_estimation_distinction PASSED [ 59%]
-tests/test_unit_lps.py::test_lps_standard_calculation PASSED             [ 61%]
-tests/test_unit_lps.py::test_critical_load_strictly_zero_lps PASSED      [ 63%]
-tests/test_unit_lps.py::test_zero_suitability_returns_zero_lps PASSED    [ 65%]
+tests/test_integration_api.py::test_api_health PASSED                    [  1%]
+tests/test_integration_api.py::test_api_building_status PASSED           [  3%]
+tests/test_integration_api.py::test_api_zones PASSED                     [  5%]
+tests/test_integration_api.py::test_api_loads_and_critical_protection PASSED [  7%]
+tests/test_integration_api.py::test_api_threshold_configuration PASSED   [  8%]
+tests/test_integration_api.py::test_api_weights_configuration PASSED     [ 10%]
+tests/test_integration_coap.py::test_real_coap_telemetry_flow PASSED     [ 12%]
+tests/test_integration_coap.py::test_aggregator_duplicate_and_stale_telemetry_handling PASSED [ 14%]
+tests/test_integration_coap.py::test_sensor_health_timeout_transitions PASSED [ 16%]
+tests/test_integration_coap.py::test_coap_client_timeout_fallback PASSED [ 17%]
+tests/test_integration_mqtt.py::test_mqtt_pub_sub_pipeline PASSED        [ 19%]
+tests/test_integration_nodered.py::test_nodered_flow_structure_and_broker_configuration PASSED [ 21%]
+tests/test_integration_nodered.py::test_nodered_javascript_functions_execution PASSED [ 23%]
+tests/test_integration_nodered.py::test_nodered_live_runtime_end_to_end PASSED [ 25%]
+tests/test_system_scenarios.py::test_peak_demand_demonstration_scenario PASSED [ 26%]
+tests/test_system_scenarios.py::test_all_ten_scenarios_execute_with_zero_critical_interruptions PASSED [ 28%]
+tests/test_system_scenarios.py::test_failed_actuator_acknowledgement_scenario PASSED [ 30%]
+tests/test_unit_actuator.py::test_critical_load_rejection PASSED         [ 32%]
+tests/test_unit_actuator.py::test_flexible_load_modulation PASSED        [ 33%]
+tests/test_unit_actuator.py::test_flexible_load_clamping_to_minimum PASSED [ 35%]
+tests/test_unit_actuator.py::test_simulated_actuator_failure PASSED      [ 37%]
+tests/test_unit_actuator.py::test_progressive_restoration_safety_margin_against_actual_measured_demand PASSED [ 39%]
+tests/test_unit_actuator.py::test_actuator_command_validation_rejections PASSED [ 41%]
+tests/test_unit_actuator.py::test_actuator_acknowledgement_fields PASSED [ 42%]
+tests/test_unit_firmware.py::test_firmware_no_hardcoded_credentials PASSED [ 44%]
+tests/test_unit_firmware.py::test_secrets_template_and_gitignore PASSED  [ 46%]
+tests/test_unit_firmware.py::test_firmware_compile_and_runtime_guards PASSED [ 48%]
+tests/test_unit_firmware.py::test_actuator_safe_relay_initialization PASSED [ 50%]
+tests/test_unit_firmware.py::test_actuator_measurement_vs_estimation_distinction PASSED [ 51%]
+tests/test_unit_firmware.py::test_sensor_firmware_no_fabricated_example_values PASSED [ 53%]
+tests/test_unit_firmware.py::test_sensor_firmware_actual_acquisition_and_health_validation PASSED [ 55%]
+tests/test_unit_firmware.py::test_sensor_firmware_pir_motion_headcount_honesty PASSED [ 57%]
+tests/test_unit_firmware.py::test_actuator_ack_buffer_overflow_diagnostics_and_policy PASSED [ 58%]
+tests/test_unit_firmware.py::test_actuator_ack_ring_buffer_simulation_logic PASSED [ 60%]
+tests/test_unit_lps.py::test_lps_standard_calculation PASSED             [ 62%]
+tests/test_unit_lps.py::test_critical_load_strictly_zero_lps PASSED      [ 64%]
+tests/test_unit_lps.py::test_zero_suitability_returns_zero_lps PASSED    [ 66%]
 tests/test_unit_lps.py::test_division_by_zero_and_boundary_handling PASSED [ 67%]
 tests/test_unit_lps.py::test_weight_normalization PASSED                 [ 69%]
 tests/test_unit_scheduler.py::test_scheduler_deadline_and_energy_delivery PASSED [ 71%]
 tests/test_unit_scheduler.py::test_scheduler_insufficient_scheduling_capacity PASSED [ 73%]
 tests/test_unit_scheduler.py::test_scheduler_no_available_time_slots PASSED [ 75%]
-tests/test_unit_scheduler.py::test_scheduler_deadline_already_passed PASSED [ 77%]
-tests/test_unit_scheduler.py::test_scheduler_load_power_greater_than_headroom PASSED [ 79%]
-tests/test_unit_scheduler.py::test_scheduler_competing_deferrable_loads PASSED [ 81%]
-tests/test_unit_scheduler.py::test_scheduler_zero_energy_requirement PASSED [ 83%]
-tests/test_unit_scheduler.py::test_scheduler_energy_exactly_equals_capacity PASSED [ 85%]
-tests/test_unit_scheduler.py::test_scheduler_target_lower_than_critical_demand PASSED [ 87%]
-tests/test_unit_scheduler.py::test_scheduler_interrupted_load_rescheduling PASSED [ 89%]
-tests/test_unit_sustainability.py::test_energy_cost_carbon_calculations PASSED [ 91%]
-tests/test_unit_sustainability.py::test_threshold_exceedance_duration PASSED [ 93%]
-tests/test_unit_sustainability.py::test_modeled_diurnal_carbon_intensity_bounds PASSED [ 95%]
-tests/test_unit_sustainability.py::test_constant_cea_carbon_mode PASSED  [ 97%]
-tests/test_unit_sustainability.py::test_constant_vs_modeled_carbon_calculations PASSED [100%]
+tests/test_unit_scheduler.py::test_scheduler_deadline_already_passed PASSED [ 76%]
+tests/test_unit_scheduler.py::test_scheduler_load_power_greater_than_headroom PASSED [ 78%]
+tests/test_unit_scheduler.py::test_scheduler_competing_deferrable_loads PASSED [ 80%]
+tests/test_unit_scheduler.py::test_scheduler_zero_energy_requirement PASSED [ 82%]
+tests/test_unit_scheduler.py::test_scheduler_energy_exactly_equals_capacity PASSED [ 83%]
+tests/test_unit_scheduler.py::test_scheduler_target_lower_than_critical_demand PASSED [ 85%]
+tests/test_unit_scheduler.py::test_scheduler_interrupted_load_rescheduling PASSED [ 87%]
+tests/test_unit_sustainability.py::test_energy_cost_carbon_calculations PASSED [ 89%]
+tests/test_unit_sustainability.py::test_threshold_exceedance_duration PASSED [ 91%]
+tests/test_unit_sustainability.py::test_modeled_diurnal_carbon_intensity_bounds PASSED [ 92%]
+tests/test_unit_sustainability.py::test_constant_cea_carbon_mode PASSED  [ 94%]
+tests/test_unit_sustainability.py::test_constant_vs_modeled_carbon_calculations PASSED [ 96%]
+tests/test_unit_sustainability.py::test_selectable_cea_carbon_methodologies PASSED [ 98%]
+tests/test_unit_sustainability.py::test_time_aligned_carbon_factors_invariant PASSED [100%]
 
-======================= 49 passed, 1 warning in 13.55s ========================
-```
+======================= 56 passed, 1 warning in 17.67s ========================
 ```
 
 ---
