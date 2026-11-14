@@ -10,6 +10,7 @@ import {
   Calendar,
   ShieldCheck,
   CheckCircle2,
+  Sparkles,
 } from 'lucide-react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, ReferenceLine } from 'recharts';
 import { BuildingStatus, ZoneSummary, DailyAnalyticsSummary } from '../types';
@@ -296,6 +297,27 @@ export const OverviewDashboard: React.FC<OverviewProps> = ({ status, zones, summ
             : undefined
         }
       />
+
+      {/* Interactive Architecture Flow Teaser */}
+      <div className="bg-gradient-to-r from-slate-900 via-slate-900 to-emerald-950/40 border border-slate-800 hover:border-emerald-500/40 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 transition">
+        <div className="flex items-center space-x-3">
+          <div className="p-2.5 bg-emerald-500/10 rounded-xl text-emerald-400 border border-emerald-500/20">
+            <Sparkles className="h-5 w-5" />
+          </div>
+          <div>
+            <h4 className="text-sm font-semibold text-white">System Architecture & IoT Flow Bento</h4>
+            <p className="text-xs text-slate-400">
+              Explore the live interactive flow diagram, multi-protocol sync hub, and scrubbable predictive load forecast.
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={() => onNavigateTab('architecture')}
+          className="bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-slate-700 text-xs font-semibold px-4 py-2 rounded-xl transition shadow-sm whitespace-nowrap cursor-pointer"
+        >
+          View Architecture Bento &rarr;
+        </button>
+      </div>
 
       {/* Chart: 24h Demand Trend */}
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm">

@@ -7,6 +7,7 @@ import { OptimizationCentre } from './pages/OptimizationCentre';
 import { LoadScheduler } from './pages/LoadScheduler';
 import { SustainabilityAnalytics } from './pages/SustainabilityAnalytics';
 import { IoTCommunicationMonitor } from './pages/IoTCommunicationMonitor';
+import { ArchitectureFeatures } from './pages/ArchitectureFeatures';
 import { useWebSocket } from './hooks/useWebSocket';
 import {
   fetchBuildingStatus,
@@ -166,6 +167,10 @@ export const App: React.FC = () => {
         )}
 
         {currentTab === 'iot' && <IoTCommunicationMonitor />}
+
+        {currentTab === 'architecture' && (
+          <ArchitectureFeatures onNavigateTab={setCurrentTab} />
+        )}
       </main>
 
       <footer className="bg-slate-900 border-t border-slate-800/80 py-4 text-center text-xs text-slate-500">

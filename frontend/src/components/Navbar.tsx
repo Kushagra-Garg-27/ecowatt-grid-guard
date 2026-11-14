@@ -10,6 +10,7 @@ import {
   Radio,
   Play,
   RotateCcw,
+  Sparkles,
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -41,6 +42,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     { id: 'scheduler', label: 'Load Scheduler', icon: Calendar },
     { id: 'analytics', label: 'Sustainability & Analytics', icon: BarChart3 },
     { id: 'iot', label: 'IoT Monitor', icon: Radio },
+    { id: 'architecture', label: 'Architecture & Flow', icon: Sparkles },
   ];
 
   return (
