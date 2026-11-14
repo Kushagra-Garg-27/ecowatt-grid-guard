@@ -67,7 +67,7 @@ class ZoneSensorNode:
         self.current_temp_c += 0.15 * (target_temp - self.current_temp_c) + rng.normal(0, 0.05)
         self.current_temp_c = round(float(self.current_temp_c), 1)
 
-        # Ambient lighting (lux)
+        # Ambient lighting (relative index proxy)
         lux_level = round(float(lighting_level * 450.0 + (50.0 if occupancy > 0 else 10.0)), 0)
 
         # 1. Power packet

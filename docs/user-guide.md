@@ -37,7 +37,7 @@ The web dashboard is organized into 7 functional views:
 
 7. **IoT Communication Monitor**:
    - Protocol analyzer showing live CoAP over UDP packets (`/telemetry/{power,occupancy,environment,status}`).
-   - Mosquitto MQTT message inspector across topics (`ecowatt/building/demand`, `ecowatt/load/+/command`, `ecowatt/load/+/ack`).
+   - MQTT message inspector across topics (`ecowatt/building/demand`, `ecowatt/load/+/command`, `ecowatt/load/+/ack`).
    - Virtual sensor node heartbeat and latency tracking.
 
 ---

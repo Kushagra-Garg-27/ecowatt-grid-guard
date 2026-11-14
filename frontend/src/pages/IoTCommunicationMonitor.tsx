@@ -46,7 +46,7 @@ export const IoTCommunicationMonitor: React.FC = () => {
         <div>
           <h2 className="text-lg font-bold text-white tracking-tight">IoT Protocol & Communication Monitor</h2>
           <p className="text-xs text-slate-400">
-            Real-time packet inspection for CoAP (UDP:5683) and Mosquitto MQTT (TCP:1883)
+            Real-time packet inspection for CoAP (UDP:5683) and MQTT (TCP:1883)
           </p>
         </div>
 
@@ -81,7 +81,7 @@ export const IoTCommunicationMonitor: React.FC = () => {
           <div className="text-xs text-slate-400 space-y-1 bg-slate-950 p-3 rounded-xl border border-slate-800 font-mono text-[11px]">
             <div>&bull; /telemetry/power &rarr; 2.04 CHANGED (active power kW)</div>
             <div>&bull; /telemetry/occupancy &rarr; 2.04 CHANGED (zone headcount)</div>
-            <div>&bull; /telemetry/environment &rarr; 2.04 CHANGED (temp, lux)</div>
+            <div>&bull; /telemetry/environment &rarr; 2.04 CHANGED (temp, light index)</div>
             <div>&bull; /telemetry/status &rarr; 2.04 CHANGED (node health)</div>
           </div>
         </div>
@@ -95,7 +95,7 @@ export const IoTCommunicationMonitor: React.FC = () => {
               </div>
               <div>
                 <h3 className="text-sm font-semibold text-white">MQTT Broker (TCP:1883)</h3>
-                <p className="text-[11px] text-slate-400">Paho MQTT & Eclipse Mosquitto compatible</p>
+                <p className="text-[11px] text-slate-400">Embedded asyncio broker (Mosquitto compatible)</p>
               </div>
             </div>
             <span className="text-[10px] bg-cyan-500/10 text-cyan-400 font-semibold px-2 py-0.5 rounded-full border border-cyan-500/20">

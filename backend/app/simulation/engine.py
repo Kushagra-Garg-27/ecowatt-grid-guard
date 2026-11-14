@@ -112,7 +112,7 @@ class SimulationEngine:
         peak_load_scheduler.update_beta(beta_cost)
 
         # Unmanaged baseline: deferrable loads plugged in during evening peak (17:00, step 68)
-        # where tariff is highest ($0.45) and grid carbon is worst (510 g/kWh)
+        # where tariff is highest (₹10.50/kWh peak ToU) and grid carbon is worst (820-880 gCO2/kWh)
         baseline_deferrable_kw = np.zeros(self.steps)
         for l_def in BUILDING_LOADS:
             if l_def.category != "DEFERRABLE":

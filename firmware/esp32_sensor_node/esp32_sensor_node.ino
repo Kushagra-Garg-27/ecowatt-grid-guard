@@ -315,10 +315,13 @@ void emitAllTelemetry() {
     envDoc["zone_id"]   = ZONE_ID;
     envDoc["timestamp"] = timestampStr;
 
-    // Approximate illuminance calibration for 10k LDR divider:
-    float luxLevel = ((float)ldrRaw / 4095.0) * 1000.0;
-    envDoc["lux_level"]   = round(luxLevel * 10.0) / 10.0;
-    envDoc["ldr_raw_adc"] = ldrRaw;
+    // Relative ambient light index derived from 10k LDR voltage divider (0-4095 ADC mapped to 0-1000 index).
+    // NOTE: This represents an uncalibrated relative ambient illumination indicator, not a calibrated NIST lux measurement.
+    float lightIndex = ((float)ldrRaw / 4095.0) * 1000.0;
+    envDoc["lux_level"]             = round(lightIndex * 10.0) / 10.0; // Preserved for telemetry schema compatibility
+    envDoc["relative_light_index"]  = round(lightIndex * 10.0) / 10.0;
+    envDoc["ldr_raw_adc"]           = ldrRaw;
+    envDoc["is_lux_calibrated"]     = false;
 
     if (dhtValid) {
         envDoc["sensor_health"]       = "HEALTHY";

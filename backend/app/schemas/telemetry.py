@@ -29,7 +29,7 @@ class OccupancyTelemetry(BaseTelemetry):
 class EnvironmentTelemetry(BaseTelemetry):
     temperature_c: float = Field(default=22.5, description="Ambient temperature in °C")
     humidity_pct: float = Field(default=45.0, description="Relative humidity %")
-    lux_level: float = Field(default=350.0, description="Ambient illuminance in Lux")
+    lux_level: float = Field(default=350.0, description="Relative ambient light index (0-1000, uncalibrated proxy)")
 
 
 class StatusTelemetry(BaseTelemetry):

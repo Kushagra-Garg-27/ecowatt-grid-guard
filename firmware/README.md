@@ -31,7 +31,7 @@ The sensor node interfaces with physical transducers across the documented pin a
 | **PZEM-004T v3.0** | AC Volts ($V$), Amps ($A$), Active Power ($kW$), Power Factor ($PF$) | **GPIO16 (RX2)**, **GPIO17 (TX2)** | TTL UART2 (9600 baud, optoisolated) | **Direct Sensor Acquisition**: If communication fails or readings return `isnan()`, the node reports `sensor_health: "FAULTED"`, flags `is_measured_power: false`, and logs error details. No fabricated values are emitted. |
 | **DHT22 / AM2302** | Temperature ($^\circ\text{C}$), Relative Humidity ($\%$) | **GPIO4** | 1-Wire Digital (4.7k$\Omega$ pullup) | **Direct Sensor Acquisition**: Validated against physical bounds (-40°C to 80°C, 0-100% RH). Disconnection flags `sensor_health: "FAULTED"` with `is_sensor_available: false`. |
 | **HC-SR501 PIR** | Motion Presence Detection | **GPIO19** | Digital GPIO (Active-High 3.3V) | **Binary Motion Detection**: Reports `motion_detected: true/false`. Note: PIR is a pyroelectric motion presence detector and does **not** provide headcount. Headcount is explicitly flagged as unmeasured (`is_headcount_measured: false`). Multi-occupant optical counting remains a pending hardware integration. |
-| **LDR Photoresistor** | Ambient Illuminance (Lux) | **GPIO34 (ADC1_CH6)** | Voltage Divider ($10\text{k}\Omega$) | **ADC Acquisition**: Reads raw 12-bit ADC (0-4095) and estimates relative illuminance. |
+| **LDR Photoresistor** | Relative Ambient Light Index (0-1000) | **GPIO34 (ADC1_CH6)** | Voltage Divider ($10\text{k}\Omega$) | **ADC Acquisition**: Reads raw 12-bit ADC (0-4095) and outputs uncalibrated relative light index (not calibrated lux). |
 | **Status LED** | Wi-Fi / CoAP Transmission Indicator | **GPIO2** | Onboard Blue LED | Output Indicator |
 
 ---

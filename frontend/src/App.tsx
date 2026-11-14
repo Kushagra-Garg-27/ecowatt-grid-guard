@@ -172,7 +172,7 @@ export const App: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
           <span>EcoWatt Grid Guard &copy; 2026 &bull; IoT-Based Dynamic Energy Optimization System</span>
           <span className="font-mono text-[11px] text-slate-400">
-            CoAP over UDP (5683) &bull; Mosquitto MQTT (1883) &bull; FastAPI & React
+            CoAP over UDP (5683) &bull; MQTT (1883) &bull; FastAPI & React
           </span>
         </div>
       </footer>

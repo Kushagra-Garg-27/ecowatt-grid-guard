@@ -100,12 +100,12 @@ This starts:
 
 ## 5. Running Automated Tests
 
-Run the complete 23-test automated test suite:
+Run the complete 56-test automated test suite:
 ```powershell
 .\scripts\run_tests.ps1
 ```
 or directly via pytest:
 ```powershell
-py -3.12 -m pytest backend/tests -v
+py -3.12 -m pytest tests -v
 ```
 

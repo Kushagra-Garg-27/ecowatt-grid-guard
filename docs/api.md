@@ -139,8 +139,8 @@ Trigger on-demand execution of the closed-loop optimization cycle.
   "threshold_kw": 7.00,
   "target_kw": 6.80,
   "required_reduction_kw": 1.80,
-  "actual_reduction_kw": 1.67,
-  "residual_demand_kw": 6.93,
+  "actual_reduction_kw": 1.81,
+  "residual_demand_kw": 6.79,
   "target_achieved": true,
   "actions_taken": [
     {

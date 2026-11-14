@@ -48,7 +48,7 @@ The architecture strictly reflects the technical mechanisms disclosed in the pat
        | QoS 1 (Port 1883)                                          | State Updates
        v                                                            v
 +-----------------------------+                           +-------------------------+
-|    MOSQUITTO MQTT BROKER    |                           |      REACT DASHBOARD    |
+|    MQTT BROKER (EMBEDDED)   |                           |      REACT DASHBOARD    |
 |   Topic: ecowatt/load/+/cmd |                           |     (Vite + TypeScript) |
 +-----------------------------+                           +-------------------------+
        |                                                            ^
@@ -80,14 +80,14 @@ The architecture strictly reflects the technical mechanisms disclosed in the pat
 - **Endpoints**:
   - `POST /telemetry/power`: active power (kW), line voltage (V), current (A), power factor.
   - `POST /telemetry/occupancy`: headcount, max capacity, motion detection.
-  - `POST /telemetry/environment`: ambient temperature (°C), relative humidity (%), lux level.
+  - `POST /telemetry/environment`: ambient temperature (°C), relative humidity (%), relative ambient light index.
   - `POST /telemetry/status`: node health flag, battery percentage, firmware version.
 - **Handling**: Stateless asynchronous request/response. Returns `2.04 CHANGED` on successful ingestion or `4.00 BAD REQUEST` on validation failure.
 
 ### 3.2 MQTT (Message Queuing Telemetry Transport)
 - **Transport**: TCP on port `1883`.
 - **Client**: `paho-mqtt` v2.2.0+.
-- **Broker**: Eclipse Mosquitto compatible, with built-in asyncio embedded fallback broker.
+- **Broker**: Default built-in `asyncio` embedded MQTT broker on port `1883`; optionally compatible with external Eclipse Mosquitto.
 - **QoS Level**: QoS 1 (At least once delivery) with application-layer command identifiers and acknowledgement matching.
 - **Topic Hierarchy**:
   - `ecowatt/building/demand`: Aggregated building power, threshold, and target status.

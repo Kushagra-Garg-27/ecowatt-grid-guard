@@ -5,7 +5,7 @@
 [![React](https://img.shields.io/badge/React-18.0+-61DAFB.svg?logo=react&logoColor=black)](https://reactjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-3178C6.svg?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![CoAP](https://img.shields.io/badge/CoAP-UDP_5683-FF6F00.svg)](https://aiocoap.readthedocs.io/)
-[![MQTT](https://img.shields.io/badge/MQTT-Mosquitto_1883-660066.svg?logo=eclipse-mosquitto&logoColor=white)](https://mosquitto.org/)
+[![MQTT](https://img.shields.io/badge/MQTT-Embedded_&_Mosquitto_1883-660066.svg)](https://mosquitto.org/)
 [![Python](https://img.shields.io/badge/Python-3.12+-3776AB.svg?logo=python&logoColor=white)](https://www.python.org/)
 [![Tests](https://img.shields.io/badge/Pytest-56_Passed_100%25-brightgreen.svg)](docs/testing.md)
 
@@ -50,7 +50,7 @@ Commercial and institutional facilities face escalating energy costs and carbon 
 - **IoT Communication**:
   - `aiocoap` (v0.4.17+): Native CoAP server and client over UDP on port `5683`.
   - `paho-mqtt` (v2.2.0+): MQTT client with structured topic hierarchy, QoS 1, and acknowledgements.
-  - Eclipse Mosquitto & Embedded Asyncio MQTT Broker (fallback on port `1883`).
+  - Embedded Asyncio MQTT Broker (default on port `1883`, zero external dependencies); optionally supports external Eclipse Mosquitto.
 - **Frontend Dashboard**: React 18, TypeScript, Vite, Tailwind CSS v4, Recharts, Lucide Icons.
 - **Visual IoT Integration**: Node-RED (`nodered/flows.json`).
 - **Testing & DevOps**: `pytest`, `pytest-asyncio`, `httpx`, Docker Compose.
@@ -77,7 +77,7 @@ MULTI-STAGE OPTIMIZATION ENGINE
         |
         | MQTT QoS 1 (Port 1883)
         v
-MOSQUITTO MQTT BROKER <---+
+MQTT BROKER (EMBEDDED / MOSQUITTO) <---+
         |                 |
         +--------+        | Acknowledgement &
         |        |        | Actual Power Remeasurement
@@ -111,7 +111,7 @@ MOSQUITTO MQTT BROKER <---+
 Implemented using `aiocoap` over UDP port `5683`:
 - `/telemetry/power`: active power (kW), voltage (V), current (A), power factor.
 - `/telemetry/occupancy`: headcount, max capacity, motion detection.
-- `/telemetry/environment`: ambient temperature (°C), relative humidity (%), lux level.
+- `/telemetry/environment`: ambient temperature (°C), relative humidity (%), relative ambient light index.
 - `/telemetry/status`: node health flag, battery percentage, firmware version.
 
 The server returns `2.04 CHANGED` upon successful ingestion and state estimation.
@@ -120,7 +120,7 @@ The server returns `2.04 CHANGED` upon successful ingestion and state estimation
 
 ## 8. MQTT Implementation
 
-- **Broker**: Compatible with Eclipse Mosquitto on port `1883`, featuring an embedded asyncio broker fallback.
+- **Broker**: Built-in Python `asyncio` MQTT 3.1.1 broker (default, runs automatically on port `1883` with zero external dependencies); optionally compatible with external Eclipse Mosquitto.
 - **Topic Hierarchy**:
   - `ecowatt/building/demand`: Live building active demand and threshold status.
   - `ecowatt/building/status`: Health state and active alarm counts.
@@ -229,7 +229,7 @@ A modern, responsive, dark-mode engineering dashboard with 7 dedicated pages:
 - **D. Optimization Centre**: Real-time threshold adjustments, LPS weights configuration sliders, and event history.
 - **E. Load Scheduler**: Deferrable EV/water heater schedules, ToU tariff curve, and carbon intensity curves.
 - **F. Sustainability & Analytics**: Comparative 24h load curve, net energy saved, cost saved, carbon avoided, and CSV export.
-- **G. IoT Communication Monitor**: Live packet viewer for CoAP UDP and Mosquitto MQTT message feeds.
+- **G. IoT Communication Monitor**: Live packet viewer for CoAP UDP and MQTT (Embedded / Mosquitto) message feeds.
 
 ---
 
@@ -287,31 +287,18 @@ py -3.12 -m pytest tests -v
 ### Actual Test Results (Executed on Windows 11, Python 3.12):
 ```
 ============================= test session starts =============================
-tests/test_integration_api.py::test_api_health PASSED                    [  4%]
-tests/test_integration_api.py::test_api_building_status PASSED           [  8%]
-tests/test_integration_api.py::test_api_zones PASSED                     [ 13%]
-tests/test_integration_api.py::test_api_loads_and_critical_protection PASSED [ 17%]
-tests/test_integration_api.py::test_api_threshold_configuration PASSED   [ 21%]
-tests/test_integration_api.py::test_api_weights_configuration PASSED     [ 26%]
-tests/test_integration_coap.py::test_real_coap_telemetry_flow PASSED     [ 30%]
-tests/test_integration_mqtt.py::test_mqtt_pub_sub_pipeline PASSED        [ 34%]
-tests/test_system_scenarios.py::test_peak_demand_demonstration_scenario PASSED [ 39%]
-tests/test_system_scenarios.py::test_all_ten_scenarios_execute_with_zero_critical_interruptions PASSED [ 43%]
-tests/test_system_scenarios.py::test_failed_actuator_acknowledgement_scenario PASSED [ 47%]
-tests/test_unit_actuator.py::test_critical_load_rejection PASSED         [ 52%]
-tests/test_unit_actuator.py::test_flexible_load_modulation PASSED        [ 56%]
-tests/test_unit_actuator.py::test_flexible_load_clamping_to_minimum PASSED [ 60%]
-tests/test_unit_actuator.py::test_simulated_actuator_failure PASSED      [ 65%]
-tests/test_unit_lps.py::test_lps_standard_calculation PASSED             [ 69%]
-tests/test_unit_lps.py::test_critical_load_strictly_zero_lps PASSED      [ 73%]
-tests/test_unit_lps.py::test_zero_suitability_returns_zero_lps PASSED    [ 78%]
-tests/test_unit_lps.py::test_division_by_zero_and_boundary_handling PASSED [ 82%]
-tests/test_unit_lps.py::test_weight_normalization PASSED                 [ 86%]
-tests/test_unit_scheduler.py::test_scheduler_deadline_and_energy_delivery PASSED [ 91%]
-tests/test_unit_sustainability.py::test_energy_cost_carbon_calculations PASSED [ 95%]
-tests/test_unit_sustainability.py::test_threshold_exceedance_duration PASSED [100%]
+tests/test_integration_api.py (6 passed)
+tests/test_integration_coap.py (4 passed)
+tests/test_integration_mqtt.py (1 passed)
+tests/test_integration_nodered.py (3 passed)
+tests/test_system_scenarios.py (3 passed)
+tests/test_unit_actuator.py (7 passed)
+tests/test_unit_firmware.py (10 passed)
+tests/test_unit_lps.py (5 passed)
+tests/test_unit_scheduler.py (10 passed)
+tests/test_unit_sustainability.py (7 passed)
 
-======================== 23 passed, 1 warning in 2.40s ========================
+======================= 56 passed, 1 warning in 10.22s ========================
 ```
 
 ### Actual Demonstration Scenario Output (`peak_demand_event`):
@@ -330,7 +317,7 @@ tests/test_unit_sustainability.py::test_threshold_exceedance_duration PASSED [10
 
 ## 20. Known Limitations & Broker Integration Notes
 
-1. **MQTT Broker Selection**: When an external Eclipse Mosquitto service is not running on the host, the application automatically launches its built-in `EmbeddedMQTTBroker` (asyncio MQTT 3.1.1 server on `127.0.0.1:1883`), allowing Paho-MQTT, the React dashboard, and Node-RED to communicate seamlessly without requiring external service installations.
+1. **MQTT Broker Selection**: By default, EcoWatt Grid Guard runs its built-in `EmbeddedMQTTBroker` (`backend/app/communication/embedded_broker.py`, an `asyncio` MQTT 3.1.1 server on `127.0.0.1:1883`), providing out-of-the-box local communication for Paho-MQTT, the React dashboard, and Node-RED with zero external setup. Alternatively, an external Eclipse Mosquitto daemon can be used (e.g. via Docker Compose).
 2. **Software-in-the-Loop Emulation**: Actuators and sensors operate with simulated physical electrical dynamics; physical microcontrollers (e.g. ESP32, Raspberry Pi) can be connected by pointing their CoAP/MQTT client to the gateway IP.
 3. **Simplified Thermal Inertia**: Room temperature dynamics utilize a lumped-capacitance 1-R-1-C thermal model rather than 3D finite-element CFD building simulations.
 4. **Single Grid Phase Modeling**: The system models a balanced single-phase equivalent grid bus ($230\text{V}$ line voltage); multi-phase unbalance estimation is not modeled.
