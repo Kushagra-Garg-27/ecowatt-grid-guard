@@ -808,3 +808,4 @@ export const PeakChart: React.FC<PeakChartProps> = ({
 };
 
 export default PeakChart;
+

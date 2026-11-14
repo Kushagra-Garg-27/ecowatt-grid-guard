@@ -25,24 +25,6 @@ interface OverviewProps {
 export const OverviewDashboard: React.FC<OverviewProps> = ({ status, zones, summary, onNavigateTab }) => {
   const [selectedPeriod, setSelectedPeriod] = useState<string>('Daily (24h)');
 
-  if (!status) {
-    return (
-      <div className="flex items-center justify-center h-64 text-slate-400">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500 mr-3" />
-        Loading building telemetry...
-      </div>
-    );
-  }
-
-  const isExceeded = status.current_power_kw > status.demand_threshold_kw;
-  const powerMargin = (status.demand_threshold_kw - status.current_power_kw).toFixed(2);
-
-  const chartData = summary?.intervals.map((inv) => ({
-    time: inv.time_str,
-    baseline: inv.baseline_power_kw,
-    optimized: inv.optimized_power_kw,
-  })) || [];
-
   // 24-Hour (96-interval) data points for PeakChart
   const dailyChartData: PeakChartDataPoint[] = useMemo(() => {
     if (!summary?.intervals || summary.intervals.length === 0) {
@@ -58,7 +40,7 @@ export const OverviewDashboard: React.FC<OverviewProps> = ({ status, zones, summ
 
   // Construct comprehensive period datasets for Daily, Weekly, Monthly, Yearly
   const periodDataMap: Record<string, PeakChartPeriodData> = useMemo(() => {
-    const optPeak = summary?.optimized_peak_power_kw ?? status.peak_demand_today_kw ?? 6.79;
+    const optPeak = summary?.optimized_peak_power_kw ?? status?.peak_demand_today_kw ?? 6.79;
     const basePeak = summary?.baseline_peak_power_kw ?? 8.60;
     const reductionPct = summary?.peak_reduction_pct ?? 21.0;
     const reductionKw = summary?.peak_reduction_kw ?? 1.81;
@@ -135,7 +117,25 @@ export const OverviewDashboard: React.FC<OverviewProps> = ({ status, zones, summ
         },
       },
     };
-  }, [summary, status.peak_demand_today_kw, dailyChartData]);
+  }, [summary, status?.peak_demand_today_kw, dailyChartData]);
+
+  if (!status) {
+    return (
+      <div className="flex items-center justify-center h-64 text-slate-400">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500 mr-3" />
+        Loading building telemetry...
+      </div>
+    );
+  }
+
+  const isExceeded = status.current_power_kw > status.demand_threshold_kw;
+  const powerMargin = (status.demand_threshold_kw - status.current_power_kw).toFixed(2);
+
+  const chartData = summary?.intervals.map((inv) => ({
+    time: inv.time_str,
+    baseline: inv.baseline_power_kw,
+    optimized: inv.optimized_power_kw,
+  })) || [];
 
   return (
     <div className="space-y-6">
