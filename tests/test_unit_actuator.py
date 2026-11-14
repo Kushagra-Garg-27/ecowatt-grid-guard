@@ -3,7 +3,8 @@ Unit Tests for Virtual Actuators, Safety Invariants, and Restoration
 Section 13 Requirements
 """
 import pytest
-from backend.app.actuators.virtual_actuator import ActuatorManager
+from backend.app.actuators.virtual_actuator import actuator_manager, ActuatorManager
+from backend.app.actuators.restoration import restoration_engine
 from backend.app.simulation.scenarios import LoadDefinition
 
 
@@ -60,3 +61,57 @@ def test_simulated_actuator_failure():
     mgr.set_fault_injection(None)
     assert act.status == "ONLINE"
 
+
+def test_progressive_restoration_safety_margin_against_actual_measured_demand():
+    """
+    Verify that progressive restoration reads actual measured demand from actuators,
+    enforces safety_buffer_kw (0.05 kW) below target demand, and never causes
+    actual measured demand to breach (target_demand - safety_buffer).
+    """
+    # 1. Reset all actuators; set deferrable loads to off-peak idle (0 kW)
+    for lid, act in actuator_manager.actuators.items():
+        if act.load_def.category == "DEFERRABLE":
+            act.current_level = 0.0
+            act.current_power_kw = 0.0
+            act.is_curtailed = False
+        else:
+            act.current_level = 1.0
+            act.current_power_kw = act.load_def.rated_power_kw
+            act.is_curtailed = False
+        act.status = "ONLINE"
+
+    # 2. Curtail multiple flexible loads to create headroom
+    cls_hvac = actuator_manager.get_load_actuator("cls_hvac")
+    cls_light = actuator_manager.get_load_actuator("cls_light_main")
+    cor_light = actuator_manager.get_load_actuator("cor_light_main")
+
+    cls_hvac.execute_command(action="MODULATE", requested_level=0.45, command_id="cmd_c1")
+    cls_light.execute_command(action="CURTAIL", requested_level=0.0, command_id="cmd_c2")
+    cor_light.execute_command(action="CURTAIL", requested_level=0.0, command_id="cmd_c3")
+
+    curtailed_power = actuator_manager.get_total_building_power()
+    # Configure target demand with 0.50 kW headroom above curtailed power
+    target_demand = round(curtailed_power + 0.50, 2)
+    safety_buffer = 0.05
+    safety_ceiling = round(target_demand - safety_buffer, 2)
+
+    # 3. Trigger progressive restoration
+    restored = restoration_engine.evaluate_and_restore(
+        target_demand_kw=target_demand,
+        current_tariff=7.50,
+        safety_buffer_kw=safety_buffer,
+    )
+
+    # 4. Read final actual measured demand from actuators
+    final_measured_demand = actuator_manager.get_total_building_power()
+
+    # 5. Core safety invariant: actual measured demand must NEVER exceed safety ceiling!
+    assert final_measured_demand <= (safety_ceiling + 1e-4), (
+        f"Restoration safety violation: actual measured demand {final_measured_demand:.3f} kW "
+        f"breached safety ceiling {safety_ceiling:.3f} kW!"
+    )
+
+    # Verify restored loads were properly recorded
+    for r in restored:
+        assert r["post_restoration_power_kw"] <= (safety_ceiling + 1e-4)
+        assert r["status"] == "SUCCESS"

@@ -58,6 +58,12 @@ class DailyAnalyticsSummary(BaseModel):
     total_actuator_failures: int
     critical_load_interruptions: int
 
+    # Deferrable load scheduling lifecycle tracking
+    deferrable_schedules: List[Dict[str, Any]] = Field(default_factory=list)
+    total_deferrable_requested_kwh: float = 0.0
+    total_deferrable_scheduled_kwh: float = 0.0
+    total_deferrable_shortfall_kwh: float = 0.0
+
     intervals: List[IntervalMetric]
 
 

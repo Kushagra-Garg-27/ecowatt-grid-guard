@@ -132,6 +132,10 @@ class SimulationEngine:
         # Optimized placement: deadline-constrained scheduler
         optimized_deferrable_kw = np.zeros(self.steps)
         total_shifted_energy = 0.0
+        scheduled_windows: List[Dict[str, Any]] = []
+        total_deferrable_requested = 0.0
+        total_deferrable_scheduled = 0.0
+        total_deferrable_shortfall = 0.0
 
         for l_def in BUILDING_LOADS:
             if l_def.category != "DEFERRABLE":
@@ -156,6 +160,27 @@ class SimulationEngine:
                 target_demand_kw=target_kw,
                 unmanaged_start_step=unmanaged_st,
             )
+
+            # Record schedule lifecycle data
+            scheduled_windows.append(sched_result.model_dump())
+            total_deferrable_requested += sched_result.requested_energy_kwh
+            total_deferrable_scheduled += sched_result.scheduled_energy_kwh
+            total_deferrable_shortfall += sched_result.shortfall_kwh
+
+            if not sched_result.is_feasible:
+                logger.warning(
+                    f"Deferrable load {l_def.name} ({l_def.id}) status: {sched_result.status} | "
+                    f"Requested: {sched_result.requested_energy_kwh:.2f}kWh, "
+                    f"Scheduled: {sched_result.scheduled_energy_kwh:.2f}kWh, "
+                    f"Shortfall: {sched_result.shortfall_kwh:.2f}kWh | "
+                    f"Reasons: {'; '.join(sched_result.feasibility_reasons)}"
+                )
+            else:
+                logger.info(
+                    f"Deferrable load {l_def.name} ({l_def.id}) status: {sched_result.status} | "
+                    f"Scheduled: {sched_result.scheduled_energy_kwh:.2f}kWh across {len(sched_result.scheduled_steps)} intervals."
+                )
+
             for s in sched_result.scheduled_steps:
                 optimized_deferrable_kw[s] += rated_kw
             total_shifted_energy += sched_result.delivered_energy_kwh
@@ -239,6 +264,10 @@ class SimulationEngine:
             threshold_kw=threshold_kw,
             interval_hours=self.interval_hours,
             shifted_energy_profile=(optimized_deferrable_kw * self.interval_hours),
+            deferrable_schedules=scheduled_windows,
+            total_deferrable_requested_kwh=total_deferrable_requested,
+            total_deferrable_scheduled_kwh=total_deferrable_scheduled,
+            total_deferrable_shortfall_kwh=total_deferrable_shortfall,
         )
 
         # 6. Persist Dataset to CSV for Reproducibility

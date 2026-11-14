@@ -3,6 +3,9 @@ Progressive Load Restoration Engine with Closed-Loop Hysteresis
 Restores curtailed electrical loads in ASCENDING order of Load Priority Score (LPS),
 ensuring that essential comfort/convenience loads are recovered first without
 causing new demand threshold violations.
+
+Strictly verifies safety against actual measured demand from actuators/meters,
+not just unverified open-loop estimates.
 """
 import uuid
 import logging
@@ -24,18 +27,32 @@ class ProgressiveRestorationEngine:
 
     def evaluate_and_restore(
         self,
-        current_demand_kw: float,
-        target_demand_kw: float,
-        current_tariff: float,
+        current_demand_kw: Optional[float] = None,
+        target_demand_kw: float = 6.80,
+        current_tariff: float = 7.50,
         safety_buffer_kw: float = 0.05,
     ) -> List[Dict[str, Any]]:
         """
         Check if demand is sufficiently below target by at least hysteresis_kw.
         If headroom exists, restore loads in ASCENDING LPS order (least suitable for curtailment restored first).
-        Remeasures total power after each step to prevent any overshoot.
+        
+        Strict Closed-Loop Validation:
+        1. Reads actual measured power directly from physical/virtual actuators via actuator_manager.
+        2. Verifies that projected actual demand (live_measured + power_needed) does not breach
+           target_demand_kw - safety_buffer_kw (e.g. 6.80 - 0.05 = 6.75 kW).
+        3. Remeasures actual demand immediately post-actuation.
+        4. If post-actuation measured power reaches or exceeds the safety ceiling, halts restoration immediately.
         """
-        available_headroom = round(target_demand_kw - current_demand_kw, 3)
+        # Always obtain fresh actual measured power directly from real-time actuator readings
+        actual_measured_demand = actuator_manager.get_total_building_power()
+        active_demand = actual_measured_demand if current_demand_kw is None else max(actual_measured_demand, current_demand_kw)
+
+        available_headroom = round(target_demand_kw - active_demand, 3)
         if available_headroom < self.hysteresis_kw:
+            logger.debug(
+                f"Progressive restoration skipped: available headroom {available_headroom:.2f}kW "
+                f"< hysteresis threshold {self.hysteresis_kw:.2f}kW (Measured Demand: {active_demand:.2f}kW, Target: {target_demand_kw:.2f}kW)"
+            )
             return []
 
         curtailed_candidates = []
@@ -66,14 +83,18 @@ class ProgressiveRestorationEngine:
         curtailed_candidates.sort(key=lambda x: x["lps"])
 
         restored_actions = []
-        live_power = current_demand_kw
 
         for item in curtailed_candidates:
+            # Query actual measured demand immediately before considering candidate
+            live_measured_power = actuator_manager.get_total_building_power()
             act = item["actuator"]
             needed = item["power_needed"]
 
-            # Strict closed-loop check: post-restoration demand must not breach target minus safety buffer
-            if (live_power + needed) <= (target_demand_kw - safety_buffer_kw):
+            projected_power = round(live_measured_power + needed, 3)
+            safety_ceiling = round(target_demand_kw - safety_buffer_kw, 3)
+
+            # Strict closed-loop check: post-restoration demand must not breach safety ceiling
+            if projected_power <= safety_ceiling:
                 cmd_id = f"cmd_rst_{uuid.uuid4().hex[:8]}"
                 ack = act.execute_command(
                     action="RESTORE",
@@ -81,10 +102,9 @@ class ProgressiveRestorationEngine:
                     command_id=cmd_id,
                 )
 
-                # Remeasure actual power
-                remeasured_total = actuator_manager.get_total_building_power()
-                actual_restored = round(remeasured_total - live_power, 3)
-                live_power = remeasured_total
+                # Remeasure actual power immediately after actuation
+                post_actuation_measured = actuator_manager.get_total_building_power()
+                actual_restored = round(post_actuation_measured - live_measured_power, 3)
 
                 restored_actions.append({
                     "load_id": act.load_id,
@@ -93,17 +113,26 @@ class ProgressiveRestorationEngine:
                     "action": "RESTORE_100_PCT",
                     "restored_power_kw": needed,
                     "actual_change_kw": actual_restored,
-                    "post_restoration_power_kw": live_power,
+                    "post_restoration_power_kw": post_actuation_measured,
+                    "safety_ceiling_kw": safety_ceiling,
                     "status": ack["status"],
                 })
                 logger.info(
                     f"Progressively restored load {act.load_id} (LPS={item['lps']:.3f}, "
-                    f"power={needed:.2f}kW, post_power={live_power:.2f}kW)"
+                    f"power={needed:.2f}kW, post_measured={post_actuation_measured:.2f}kW <= {safety_ceiling:.2f}kW)"
                 )
+
+                # Critical safety gate: if actual measured power reaches or exceeds safety ceiling, halt
+                if post_actuation_measured >= safety_ceiling:
+                    logger.info(
+                        f"Halting progressive restoration: post-actuation demand {post_actuation_measured:.2f}kW "
+                        f"reached safety ceiling {safety_ceiling:.2f}kW (Target: {target_demand_kw:.2f}kW)."
+                    )
+                    break
             else:
                 logger.debug(
                     f"Skipping restoration of {act.load_id} ({needed:.2f}kW): "
-                    f"would result in {live_power + needed:.2f}kW > target {target_demand_kw:.2f}kW"
+                    f"projected demand {projected_power:.2f}kW would breach safety ceiling {safety_ceiling:.2f}kW"
                 )
 
         return restored_actions

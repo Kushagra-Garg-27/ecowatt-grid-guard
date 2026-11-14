@@ -31,6 +31,10 @@ class SustainabilityCalculator:
         threshold_kw: float = 7.00,
         interval_hours: float = 0.25,  # 15 minutes = 0.25h
         shifted_energy_profile: Optional[np.ndarray] = None,
+        deferrable_schedules: Optional[List[Dict[str, Any]]] = None,
+        total_deferrable_requested_kwh: float = 0.0,
+        total_deferrable_scheduled_kwh: float = 0.0,
+        total_deferrable_shortfall_kwh: float = 0.0,
     ) -> DailyAnalyticsSummary:
         """
         Derive full daily metrics from 96-step time series.
@@ -134,6 +138,10 @@ class SustainabilityCalculator:
             total_control_operations=control_operations_count,
             total_actuator_failures=actuator_failures_count,
             critical_load_interruptions=critical_interruptions_count,
+            deferrable_schedules=deferrable_schedules or [],
+            total_deferrable_requested_kwh=round(total_deferrable_requested_kwh, 2),
+            total_deferrable_scheduled_kwh=round(total_deferrable_scheduled_kwh, 2),
+            total_deferrable_shortfall_kwh=round(total_deferrable_shortfall_kwh, 2),
             intervals=intervals,
         )
 
