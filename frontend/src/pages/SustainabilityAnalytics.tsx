@@ -5,22 +5,18 @@ import {
   DollarSign,
   Leaf,
   ShieldCheck,
-  CheckCircle2,
-  Clock,
   Download,
-  AlertTriangle,
+  Activity,
+  Layers,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
   ComposedChart,
   Area,
   Line,
-  BarChart,
-  Bar,
   XAxis,
   YAxis,
   Tooltip,
-  Legend,
   CartesianGrid,
   ReferenceLine,
 } from 'recharts';
@@ -41,9 +37,9 @@ export const SustainabilityAnalytics: React.FC<SustainabilityAnalyticsProps> = (
 }) => {
   if (!summary) {
     return (
-      <div className="flex items-center justify-center h-64 text-slate-400">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500 mr-3" />
-        Computing analytical metrics...
+      <div className="flex items-center justify-center h-64 text-zinc-500 font-mono text-xs">
+        <div className="animate-spin rounded-full h-5 w-5 border-2 border-emerald-500 border-t-transparent mr-3" />
+        COMPUTING TELEMETRY & ANALYTICAL METRICS...
       </div>
     );
   }
@@ -58,7 +54,6 @@ export const SustainabilityAnalytics: React.FC<SustainabilityAnalyticsProps> = (
   }));
 
   const handleDownloadCSV = () => {
-    // Convert intervals to CSV
     const headers = [
       'step_index',
       'time_str',
@@ -93,24 +88,31 @@ export const SustainabilityAnalytics: React.FC<SustainabilityAnalyticsProps> = (
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Title & Controls */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-[#27272A] pb-3">
         <div>
-          <h2 className="text-lg font-bold text-white tracking-tight">Sustainability & Comparative Analytics</h2>
-          <p className="text-xs text-slate-400">
-            Unmanaged baseline vs EcoWatt closed-loop optimization (24-Hour / 96-interval evaluation)
+          <div className="flex items-center space-x-2">
+            <span className="font-mono text-[10px] uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+              AUDIT COMPLIANT
+            </span>
+            <h2 className="text-sm font-semibold tracking-tight text-zinc-100 uppercase">
+              Sustainability & Comparative Analytics
+            </h2>
+          </div>
+          <p className="font-mono text-[11px] text-zinc-400 mt-0.5">
+            96-interval closed-loop optimization vs unmanaged baseline profile (CEA Baseline)
           </p>
         </div>
 
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-2 self-stretch sm:self-auto">
           <select
             value={activeScenario}
             onChange={(e) => onScenarioChange(e.target.value)}
-            className="bg-slate-900 border border-slate-800 text-xs text-slate-200 px-3 py-1.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            className="flex-1 sm:flex-none bg-[#0F0F12] border border-[#27272A] text-zinc-200 font-mono text-xs px-2.5 py-1.5 rounded-md focus:outline-none focus:border-zinc-500 transition"
           >
             {Object.entries(scenarios).map(([key, item]) => (
-              <option key={key} value={key}>
+              <option key={key} value={key} className="bg-zinc-900 text-zinc-200">
                 {item.name}
               </option>
             ))}
@@ -118,133 +120,222 @@ export const SustainabilityAnalytics: React.FC<SustainabilityAnalyticsProps> = (
 
           <button
             onClick={handleDownloadCSV}
-            className="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium px-3 py-1.5 rounded-xl border border-slate-700 flex items-center space-x-1.5 transition shadow-sm"
+            className="bg-[#18181B] hover:bg-[#27272A] text-zinc-300 font-mono text-xs px-2.5 py-1.5 rounded-md border border-[#27272A] flex items-center space-x-1.5 transition active:scale-95 shadow-sm"
           >
             <Download className="h-3.5 w-3.5 text-emerald-400" />
-            <span>Export CSV</span>
+            <span>EXPORT CSV</span>
           </button>
         </div>
       </div>
 
-      {/* Metric Comparison Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Metric Comparison Bento Server Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {/* Peak Power Shaving */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-2">
-          <div className="flex items-center justify-between text-xs text-slate-400">
+        <div className="bento-surface rounded-lg p-3.5 space-y-2 border border-[#27272A] border-t-white/[0.08]">
+          <div className="flex items-center justify-between text-zinc-400 font-mono text-[10px] uppercase tracking-wider">
             <span>Peak Demand Shaving</span>
-            <TrendingDown className="h-4 w-4 text-emerald-400" />
+            <TrendingDown className="h-3.5 w-3.5 text-emerald-400" />
           </div>
-          <div className="text-2xl font-bold text-white">
-            {summary.peak_reduction_kw.toFixed(2)} <span className="text-xs text-slate-400 font-normal">kW</span>
+          <div className="flex items-baseline space-x-1.5">
+            <span className="font-mono tabular-nums text-2xl font-semibold text-zinc-100">
+              {summary.peak_reduction_kw.toFixed(2)}
+            </span>
+            <span className="font-mono text-xs text-zinc-500">kW</span>
           </div>
-          <div className="flex items-center justify-between text-xs border-t border-slate-800/80 pt-2">
-            <span className="text-slate-400">Baseline Peak: {summary.baseline_peak_power_kw.toFixed(2)} kW</span>
-            <span className="text-emerald-400 font-bold">-{summary.peak_reduction_pct.toFixed(1)}%</span>
+          <div className="flex items-center justify-between font-mono text-[11px] border-t border-[#27272A] pt-2">
+            <span className="text-zinc-500">BASE: {summary.baseline_peak_power_kw.toFixed(2)} kW</span>
+            <span className="text-emerald-400 font-medium">-{summary.peak_reduction_pct.toFixed(1)}%</span>
           </div>
         </div>
 
         {/* Daily Energy Consumption */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-2">
-          <div className="flex items-center justify-between text-xs text-slate-400">
+        <div className="bento-surface rounded-lg p-3.5 space-y-2 border border-[#27272A] border-t-white/[0.08]">
+          <div className="flex items-center justify-between text-zinc-400 font-mono text-[10px] uppercase tracking-wider">
             <span>Daily Net Energy Saved</span>
-            <Zap className="h-4 w-4 text-cyan-400" />
+            <Zap className="h-3.5 w-3.5 text-cyan-400" />
           </div>
-          <div className="text-2xl font-bold text-white">
-            {summary.net_energy_saved_kwh.toFixed(2)} <span className="text-xs text-slate-400 font-normal">kWh</span>
+          <div className="flex items-baseline space-x-1.5">
+            <span className="font-mono tabular-nums text-2xl font-semibold text-zinc-100">
+              {summary.net_energy_saved_kwh.toFixed(2)}
+            </span>
+            <span className="font-mono text-xs text-zinc-500">kWh</span>
           </div>
-          <div className="flex items-center justify-between text-xs border-t border-slate-800/80 pt-2">
-            <span className="text-slate-400">Base: {summary.total_baseline_energy_kwh.toFixed(1)} kWh</span>
-            <span className="text-cyan-400 font-bold">-{summary.energy_saved_pct.toFixed(1)}%</span>
+          <div className="flex items-center justify-between font-mono text-[11px] border-t border-[#27272A] pt-2">
+            <span className="text-zinc-500">BASE: {summary.total_baseline_energy_kwh.toFixed(1)} kWh</span>
+            <span className="text-cyan-400 font-medium">-{summary.energy_saved_pct.toFixed(1)}%</span>
           </div>
         </div>
 
         {/* Electricity Cost Savings */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-2">
-          <div className="flex items-center justify-between text-xs text-slate-400">
+        <div className="bento-surface rounded-lg p-3.5 space-y-2 border border-[#27272A] border-t-white/[0.08]">
+          <div className="flex items-center justify-between text-zinc-400 font-mono text-[10px] uppercase tracking-wider">
             <span>Electricity Cost Shaved</span>
-            <DollarSign className="h-4 w-4 text-amber-400" />
+            <DollarSign className="h-3.5 w-3.5 text-amber-400" />
           </div>
-          <div className="text-2xl font-bold text-white">
-            ₹{summary.net_cost_saved.toFixed(2)} <span className="text-xs text-slate-400 font-normal">INR</span>
+          <div className="flex items-baseline space-x-1.5">
+            <span className="font-mono tabular-nums text-2xl font-semibold text-zinc-100">
+              ₹{summary.net_cost_saved.toFixed(2)}
+            </span>
+            <span className="font-mono text-xs text-zinc-500">INR</span>
           </div>
-          <div className="flex items-center justify-between text-xs border-t border-slate-800/80 pt-2">
-            <span className="text-slate-400">Base Cost: ₹{summary.baseline_total_cost.toFixed(2)}</span>
-            <span className="text-amber-400 font-bold">-{summary.cost_saved_pct.toFixed(1)}%</span>
+          <div className="flex items-center justify-between font-mono text-[11px] border-t border-[#27272A] pt-2">
+            <span className="text-zinc-500">BASE: ₹{summary.baseline_total_cost.toFixed(2)}</span>
+            <span className="text-amber-400 font-medium">-{summary.cost_saved_pct.toFixed(1)}%</span>
           </div>
         </div>
 
         {/* Carbon Footprint Reduction */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-2">
-          <div className="flex items-center justify-between text-xs text-slate-400">
+        <div className="bento-surface rounded-lg p-3.5 space-y-2 border border-[#27272A] border-t-white/[0.08]">
+          <div className="flex items-center justify-between text-zinc-400 font-mono text-[10px] uppercase tracking-wider">
             <span>Avoided CO2 Emissions</span>
-            <Leaf className="h-4 w-4 text-emerald-400" />
+            <Leaf className="h-3.5 w-3.5 text-emerald-400" />
           </div>
-          <div className="text-2xl font-bold text-white">
-            {summary.carbon_avoided_kg.toFixed(2)} <span className="text-xs text-slate-400 font-normal">kg CO2</span>
+          <div className="flex items-baseline space-x-1.5">
+            <span className="font-mono tabular-nums text-2xl font-semibold text-zinc-100">
+              {summary.carbon_avoided_kg.toFixed(2)}
+            </span>
+            <span className="font-mono text-xs text-zinc-500">kg CO2</span>
           </div>
-          <div className="flex items-center justify-between text-xs border-t border-slate-800/80 pt-2">
-            <span className="text-slate-400">Base: {summary.baseline_total_carbon_kg.toFixed(1)} kg</span>
-            <span className="text-emerald-400 font-bold">-{summary.carbon_reduction_pct.toFixed(1)}%</span>
+          <div className="flex items-center justify-between font-mono text-[11px] border-t border-[#27272A] pt-2">
+            <span className="text-zinc-500">BASE: {summary.baseline_total_carbon_kg.toFixed(1)} kg</span>
+            <span className="text-emerald-400 font-medium">-{summary.carbon_reduction_pct.toFixed(1)}%</span>
           </div>
         </div>
       </div>
 
-      {/* Grid Reliability & Protection Table */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-3">
-          <span className="text-slate-400 text-[11px] block">Threshold Exceedance Baseline</span>
-          <span className="text-rose-400 font-bold text-sm">{summary.threshold_exceedance_minutes_baseline} mins</span>
+      {/* Grid Reliability & Protection Register */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+        <div className="bento-surface rounded-md p-3 border border-[#27272A]">
+          <span className="text-zinc-500 font-mono text-[10px] uppercase block tracking-wider">
+            Baseline Exceedance
+          </span>
+          <span className="font-mono tabular-nums text-rose-400 font-semibold text-sm mt-0.5 block">
+            {summary.threshold_exceedance_minutes_baseline} mins
+          </span>
         </div>
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-3">
-          <span className="text-slate-400 text-[11px] block">Threshold Exceedance Optimized</span>
-          <span className="text-emerald-400 font-bold text-sm">{summary.threshold_exceedance_minutes_optimized} mins</span>
+        <div className="bento-surface rounded-md p-3 border border-[#27272A]">
+          <span className="text-zinc-500 font-mono text-[10px] uppercase block tracking-wider">
+            Optimized Exceedance
+          </span>
+          <span className="font-mono tabular-nums text-emerald-400 font-semibold text-sm mt-0.5 block">
+            {summary.threshold_exceedance_minutes_optimized} mins
+          </span>
         </div>
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-3">
-          <span className="text-slate-400 text-[11px] block">Control Actuations Run</span>
-          <span className="text-white font-bold text-sm">{summary.total_control_operations} operations</span>
+        <div className="bento-surface rounded-md p-3 border border-[#27272A]">
+          <span className="text-zinc-500 font-mono text-[10px] uppercase block tracking-wider">
+            Actuations Dispatched
+          </span>
+          <span className="font-mono tabular-nums text-zinc-100 font-semibold text-sm mt-0.5 block">
+            {summary.total_control_operations} ops
+          </span>
         </div>
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-3">
-          <span className="text-slate-400 text-[11px] block">Critical Load Interruptions</span>
-          <span className="text-emerald-400 font-bold text-sm flex items-center space-x-1">
+        <div className="bento-surface rounded-md p-3 border border-[#27272A]">
+          <span className="text-zinc-500 font-mono text-[10px] uppercase block tracking-wider">
+            Critical Load Trip
+          </span>
+          <span className="font-mono text-emerald-400 font-semibold text-sm mt-0.5 flex items-center space-x-1.5">
             <ShieldCheck className="h-3.5 w-3.5" />
-            <span>0 (Zero Interrupted)</span>
+            <span>0 (100% IMMUNE)</span>
           </span>
         </div>
       </div>
 
       {/* 24-Hour Comparative Load Curve Chart */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+      <div className="bento-surface rounded-lg p-4 border border-[#27272A] border-t-white/[0.08] space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#27272A] pb-3">
           <div>
-            <h3 className="text-sm font-semibold text-white">24-Hour Comparative Load Profile</h3>
-            <p className="text-xs text-slate-400">15-minute intervals (96 intervals / day)</p>
+            <h3 className="font-mono text-xs font-semibold text-zinc-100 uppercase tracking-wider flex items-center space-x-2">
+              <Activity className="h-3.5 w-3.5 text-emerald-400" />
+              <span>24-Hour Comparative Load Profile</span>
+            </h3>
+            <p className="font-mono text-[10px] text-zinc-500 mt-0.5">
+              15-minute sampling intervals (96 intervals / day)
+            </p>
           </div>
-          <div className="flex items-center space-x-4 text-xs">
-            <span className="flex items-center space-x-1.5 text-slate-400">
-              <span className="h-2 w-2 rounded-full bg-slate-500" />
+          <div className="flex items-center space-x-4 font-mono text-[11px]">
+            <span className="flex items-center space-x-1.5 text-zinc-400">
+              <span className="h-2 w-2 rounded-sm bg-zinc-600" />
               <span>Unmanaged Baseline</span>
             </span>
-            <span className="flex items-center space-x-1.5 text-emerald-400 font-semibold">
-              <span className="h-2 w-2 rounded-full bg-emerald-400" />
+            <span className="flex items-center space-x-1.5 text-emerald-400 font-medium">
+              <span className="h-2 w-2 rounded-sm bg-emerald-400" />
               <span>EcoWatt Optimized</span>
             </span>
           </div>
         </div>
 
-        <div className="h-72">
+        <div className="h-72 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-              <XAxis dataKey="time" stroke="#475569" fontSize={11} interval={7} />
-              <YAxis stroke="#475569" fontSize={11} unit=" kW" domain={[0, 10]} />
+              <CartesianGrid stroke="#27272A" strokeDasharray="2 3" vertical={false} />
+              <XAxis
+                dataKey="time"
+                stroke="#52525B"
+                fontSize={10}
+                tickLine={false}
+                interval={7}
+                tick={{ fill: '#71717A', fontFamily: 'JetBrains Mono, monospace' }}
+              />
+              <YAxis
+                stroke="#52525B"
+                fontSize={10}
+                unit=" kW"
+                domain={[0, 10]}
+                tickLine={false}
+                tick={{ fill: '#71717A', fontFamily: 'JetBrains Mono, monospace' }}
+              />
               <Tooltip
-                contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '0.75rem', fontSize: '11px' }}
+                contentStyle={{
+                  backgroundColor: '#0F0F12',
+                  borderColor: '#27272A',
+                  borderRadius: '0.375rem',
+                  fontSize: '11px',
+                  fontFamily: 'JetBrains Mono, monospace',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+                }}
                 formatter={(val: any) => [`${parseFloat(val).toFixed(2)} kW`]}
               />
-              <ReferenceLine y={7.0} stroke="#f43f5e" strokeDasharray="4 4" label={{ value: 'Threshold 7.0 kW', fill: '#f43f5e', fontSize: 10 }} />
-              <ReferenceLine y={6.8} stroke="#06b6d4" strokeDasharray="3 3" label={{ value: 'Target 6.8 kW', fill: '#06b6d4', fontSize: 10 }} />
-              <Area type="monotone" dataKey="baseline_power" stroke="#64748b" strokeWidth={1.5} fill="#334155" fillOpacity={0.2} name="Baseline" />
-              <Line type="monotone" dataKey="optimized_power" stroke="#10b981" strokeWidth={2.5} dot={false} name="Optimized" />
+              <ReferenceLine
+                y={7.0}
+                stroke="#F43F5E"
+                strokeDasharray="3 3"
+                label={{
+                  value: 'LIMIT 7.00 kW',
+                  fill: '#F43F5E',
+                  fontSize: 9,
+                  position: 'insideTopRight',
+                  fontFamily: 'JetBrains Mono, monospace',
+                }}
+              />
+              <ReferenceLine
+                y={6.8}
+                stroke="#06B6D4"
+                strokeDasharray="2 2"
+                label={{
+                  value: 'TARGET 6.80 kW',
+                  fill: '#06B6D4',
+                  fontSize: 9,
+                  position: 'insideBottomRight',
+                  fontFamily: 'JetBrains Mono, monospace',
+                }}
+              />
+              <Area
+                type="monotone"
+                dataKey="baseline_power"
+                stroke="#71717A"
+                strokeWidth={1.5}
+                fill="#27272A"
+                fillOpacity={0.4}
+                name="Baseline"
+              />
+              <Line
+                type="monotone"
+                dataKey="optimized_power"
+                stroke="#10B981"
+                strokeWidth={2}
+                dot={false}
+                name="Optimized"
+              />
             </ComposedChart>
           </ResponsiveContainer>
         </div>
@@ -252,4 +343,3 @@ export const SustainabilityAnalytics: React.FC<SustainabilityAnalyticsProps> = (
     </div>
   );
 };
-

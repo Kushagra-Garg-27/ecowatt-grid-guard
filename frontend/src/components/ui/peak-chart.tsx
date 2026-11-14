@@ -406,25 +406,18 @@ export const PeakChart: React.FC<PeakChartProps> = ({
   return (
     <div
       ref={containerRef}
-      className={`relative overflow-hidden rounded-2xl bg-[#091122]/95 border border-slate-800/90 shadow-[0_0_35px_-5px_rgba(6,182,212,0.12)] p-5 text-slate-100 transition-all duration-300 hover:border-cyan-500/30 ${className}`}
+      className={`relative overflow-hidden rounded-lg bg-[#0F0F12] border border-[#27272A] border-t-white/[0.08] p-4 text-[#FAFAFA] transition-colors ${className}`}
     >
-      {/* Subtle Glowing Radial Background Highlight */}
-      <div
-        className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full blur-3xl"
-        style={{ background: `radial-gradient(circle, ${accentColor}18 0%, transparent 70%)` }}
-        aria-hidden="true"
-      />
-
       {/* Header: Title, Period Controls, and Real-time Badge */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
         <div>
           <div className="flex items-center space-x-2">
-            <span className="p-1.5 rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
-              <Zap className="h-4 w-4" />
+            <span className="p-1 rounded bg-[#18181B] text-cyan-400 border border-[#27272A]">
+              <Zap className="h-3.5 w-3.5" />
             </span>
-            <h3 className="text-sm font-semibold tracking-wide text-white">{title}</h3>
+            <h3 className="text-xs font-mono font-semibold uppercase tracking-wider text-[#FAFAFA]">{title}</h3>
           </div>
-          <p className="text-xs text-slate-400 mt-0.5">{activeCaption}</p>
+          <p className="text-[11px] font-mono text-[#71717A] mt-0.5">{activeCaption}</p>
         </div>
 
         {/* Period Selector Tabs (Controlled & Uncontrolled) */}
@@ -432,7 +425,7 @@ export const PeakChart: React.FC<PeakChartProps> = ({
           <div
             role="tablist"
             aria-label="Period Selection"
-            className="inline-flex self-start sm:self-auto bg-slate-950/80 p-1 rounded-xl border border-slate-800 text-xs"
+            className="inline-flex self-start sm:self-auto bg-[#09090B] p-0.5 rounded border border-[#27272A] text-[11px] font-mono"
           >
             {periods.map((p) => {
               const isSelected = activePeriod === p;
@@ -442,10 +435,10 @@ export const PeakChart: React.FC<PeakChartProps> = ({
                   role="tab"
                   aria-selected={isSelected}
                   onClick={() => handlePeriodChange(p)}
-                  className={`px-3 py-1.5 rounded-lg font-medium transition-all duration-200 capitalize ${
+                  className={`px-2.5 py-1 rounded font-medium transition cursor-pointer capitalize ${
                     isSelected
-                      ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 shadow-sm'
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60'
+                      ? 'bg-[#18181B] text-[#FAFAFA] border border-[#27272A] shadow-xs'
+                      : 'text-[#71717A] hover:text-[#A1A1AA] hover:bg-[#121215] border border-transparent'
                   }`}
                 >
                   {p}
@@ -459,33 +452,33 @@ export const PeakChart: React.FC<PeakChartProps> = ({
       {/* Metric Display & Trend Pill */}
       <div className="flex flex-wrap items-baseline justify-between gap-3 mb-3">
         <div className="flex items-baseline space-x-2">
-          <span className="font-mono text-3xl font-extrabold tracking-tight text-white">
+          <span className="font-mono tabular-nums text-3xl font-bold tracking-tight text-[#FAFAFA]">
             {displayValue.toFixed(2)}
           </span>
-          <span className="text-sm font-semibold text-cyan-400">{unit}</span>
-          <span className="text-[11px] text-slate-400 ml-1">
-            (Peak Active Demand)
+          <span className="text-xs font-mono font-semibold text-cyan-400">{unit}</span>
+          <span className="text-[10px] font-mono text-[#71717A] ml-1">
+            [PEAK ACTIVE DEMAND]
           </span>
         </div>
 
         {/* Dynamic Trend Indicator */}
         {activeTrend && (
           <div
-            className={`inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${
+            className={`inline-flex items-center space-x-1.5 px-2 py-0.5 rounded text-[11px] font-mono font-medium border ${
               activeTrend.direction === 'down'
                 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
                 : activeTrend.direction === 'up'
                 ? 'bg-rose-500/10 text-rose-400 border-rose-500/20'
-                : 'bg-slate-800 text-slate-300 border-slate-700'
+                : 'bg-[#18181B] text-[#A1A1AA] border-[#27272A]'
             }`}
           >
-            {activeTrend.direction === 'down' && <TrendingDown className="h-3.5 w-3.5" />}
-            {activeTrend.direction === 'up' && <TrendingUp className="h-3.5 w-3.5" />}
-            {activeTrend.direction === 'neutral' && <Minus className="h-3.5 w-3.5" />}
-            <span>{activeTrend.value}</span>
+            {activeTrend.direction === 'down' && <TrendingDown className="h-3 w-3" />}
+            {activeTrend.direction === 'up' && <TrendingUp className="h-3 w-3" />}
+            {activeTrend.direction === 'neutral' && <Minus className="h-3 w-3" />}
+            <span className="tabular-nums">{activeTrend.value}</span>
             {activeTrend.label && (
-              <span className="hidden md:inline text-[10px] opacity-75 font-normal">
-                • {activeTrend.label}
+              <span className="hidden md:inline text-[10px] text-[#71717A] font-normal">
+                &bull; {activeTrend.label}
               </span>
             )}
           </div>
@@ -494,7 +487,7 @@ export const PeakChart: React.FC<PeakChartProps> = ({
 
       {/* Data Limitation Notice (Shown when selecting multi-week views if historical backend dataset is pending) */}
       {dataLimitationNotice && (
-        <div className="mb-3 px-3 py-1.5 rounded-lg bg-slate-950/60 border border-slate-800/80 text-[11px] text-slate-400 flex items-center space-x-2">
+        <div className="mb-3 px-3 py-1.5 rounded bg-[#121215] border border-[#27272A] text-[11px] font-mono text-[#A1A1AA] flex items-center space-x-2">
           <Info className="h-3.5 w-3.5 text-cyan-400 shrink-0" />
           <span>{dataLimitationNotice}</span>
         </div>
@@ -511,14 +504,14 @@ export const PeakChart: React.FC<PeakChartProps> = ({
           <defs>
             {/* Primary Gradient Fill */}
             <linearGradient id="peakAreaGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={accentColor} stopOpacity={0.35} />
+              <stop offset="0%" stopColor={accentColor} stopOpacity={0.25} />
               <stop offset="85%" stopColor={accentColor} stopOpacity={0.02} />
               <stop offset="100%" stopColor={accentColor} stopOpacity={0.0} />
             </linearGradient>
 
-            {/* Glowing Drop Shadow Filter for Primary Line */}
+            {/* Subtle Line Filter */}
             <filter id="peakGlow" x="-20%" y="-20%" width="140%" height="140%">
-              <feGaussianBlur stdDeviation="3" result="blur" />
+              <feGaussianBlur stdDeviation="2" result="blur" />
               <feComposite in="SourceGraphic" in2="blur" operator="over" />
             </filter>
           </defs>
@@ -529,7 +522,7 @@ export const PeakChart: React.FC<PeakChartProps> = ({
             y1={padding.top + graphHeight}
             x2={svgWidth - padding.right}
             y2={padding.top + graphHeight}
-            stroke="#1e293b"
+            stroke="#27272A"
             strokeWidth="1"
           />
           <line
@@ -537,8 +530,8 @@ export const PeakChart: React.FC<PeakChartProps> = ({
             y1={padding.top + graphHeight / 2}
             x2={svgWidth - padding.right}
             y2={padding.top + graphHeight / 2}
-            stroke="#1e293b"
-            strokeDasharray="3 3"
+            stroke="#27272A"
+            strokeDasharray="2 3"
             strokeWidth="1"
           />
           <line
@@ -546,8 +539,8 @@ export const PeakChart: React.FC<PeakChartProps> = ({
             y1={padding.top}
             x2={svgWidth - padding.right}
             y2={padding.top}
-            stroke="#1e293b"
-            strokeDasharray="3 3"
+            stroke="#27272A"
+            strokeDasharray="2 3"
             strokeWidth="1"
           />
 
@@ -559,20 +552,21 @@ export const PeakChart: React.FC<PeakChartProps> = ({
                 y1={padding.top + graphHeight - ((thresholdKw - minY) / (maxY - minY || 1)) * graphHeight}
                 x2={svgWidth - padding.right}
                 y2={padding.top + graphHeight - ((thresholdKw - minY) / (maxY - minY || 1)) * graphHeight}
-                stroke="#f43f5e"
-                strokeDasharray="4 4"
-                strokeWidth="1.2"
-                opacity={0.7}
+                stroke="#F43F5E"
+                strokeDasharray="3 3"
+                strokeWidth="1"
+                opacity={0.8}
               />
               <text
                 x={svgWidth - padding.right}
                 y={padding.top + graphHeight - ((thresholdKw - minY) / (maxY - minY || 1)) * graphHeight - 4}
                 textAnchor="end"
-                fill="#f43f5e"
+                fill="#F43F5E"
                 fontSize="9"
+                fontFamily="monospace"
                 fontWeight="600"
               >
-                Limit {thresholdKw}kW
+                LIMIT {thresholdKw.toFixed(2)}kW
               </text>
             </g>
           )}
@@ -584,19 +578,20 @@ export const PeakChart: React.FC<PeakChartProps> = ({
                 y1={padding.top + graphHeight - ((targetKw - minY) / (maxY - minY || 1)) * graphHeight}
                 x2={svgWidth - padding.right}
                 y2={padding.top + graphHeight - ((targetKw - minY) / (maxY - minY || 1)) * graphHeight}
-                stroke="#06b6d4"
-                strokeDasharray="3 3"
-                strokeWidth="1.2"
+                stroke="#06B6D4"
+                strokeDasharray="2 2"
+                strokeWidth="1"
                 opacity={0.8}
               />
               <text
                 x={padding.left + 5}
                 y={padding.top + graphHeight - ((targetKw - minY) / (maxY - minY || 1)) * graphHeight - 4}
-                fill="#06b6d4"
+                fill="#06B6D4"
                 fontSize="9"
+                fontFamily="monospace"
                 fontWeight="600"
               >
-                Target {targetKw}kW
+                TARGET {targetKw.toFixed(2)}kW
               </text>
             </g>
           )}
@@ -614,10 +609,10 @@ export const PeakChart: React.FC<PeakChartProps> = ({
             <path
               d={secLinePathD}
               fill="none"
-              stroke={secondaryColor}
-              strokeWidth="1.5"
-              strokeDasharray="4 4"
-              opacity={0.65}
+              stroke="#52525B"
+              strokeWidth="1.2"
+              strokeDasharray="3 3"
+              opacity={0.7}
             />
           )}
 
@@ -627,7 +622,7 @@ export const PeakChart: React.FC<PeakChartProps> = ({
               d={linePathD}
               fill="none"
               stroke={accentColor}
-              strokeWidth="2.5"
+              strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
               filter="url(#peakGlow)"
@@ -642,51 +637,46 @@ export const PeakChart: React.FC<PeakChartProps> = ({
           {/* Pulsing Dot on the Peak Value */}
           {peakPoint && (
             <g transform={`translate(${peakPoint.x}, ${peakPoint.y})`}>
-              {/* Outer Pulsing Wave */}
               <circle
                 cx="0"
                 cy="0"
                 r="6"
                 fill={accentColor}
-                opacity={0.7}
+                opacity={0.4}
                 className={prefersReducedMotion ? '' : 'animate-ping origin-center'}
                 style={{ transformOrigin: '0 0' }}
               />
-              {/* Mid Glow Ring */}
-              <circle cx="0" cy="0" r="7" fill={accentColor} opacity={0.25} />
-              {/* Solid Center Core */}
               <circle
                 cx="0"
                 cy="0"
-                r="3.5"
-                fill="#ffffff"
+                r="3"
+                fill="#FFFFFF"
                 stroke={accentColor}
-                strokeWidth="2.5"
+                strokeWidth="2"
               />
 
               {/* Peak Badge Label */}
-              <g transform="translate(0, -14)">
+              <g transform="translate(0, -12)">
                 <rect
-                  x="-32"
-                  y="-14"
-                  width="64"
-                  height="16"
-                  rx="4"
-                  fill="#020617"
+                  x="-36"
+                  y="-12"
+                  width="72"
+                  height="14"
+                  rx="2"
+                  fill="#09090B"
                   stroke={accentColor}
                   strokeWidth="1"
-                  opacity={0.95}
                 />
                 <text
                   x="0"
-                  y="-3"
+                  y="-2"
                   textAnchor="middle"
-                  fill="#ffffff"
-                  fontSize="9"
+                  fill="#FAFAFA"
+                  fontSize="8.5"
                   fontFamily="monospace"
                   fontWeight="bold"
                 >
-                  PEAK {peakPoint.data.value.toFixed(2)}
+                  PEAK {peakPoint.data.value.toFixed(2)} kW
                 </text>
               </g>
             </g>
@@ -695,23 +685,21 @@ export const PeakChart: React.FC<PeakChartProps> = ({
           {/* Hover Crosshair & Data Readout */}
           {hoveredPoint && (
             <g>
-              {/* Vertical Guide Line */}
               <line
                 x1={hoveredPoint.x}
                 y1={padding.top}
                 x2={hoveredPoint.x}
                 y2={padding.top + graphHeight}
-                stroke="#94a3b8"
+                stroke="#71717A"
                 strokeDasharray="2 2"
                 strokeWidth="1"
                 opacity={0.7}
               />
-              {/* Hover Indicator Dot */}
               <circle
                 cx={hoveredPoint.x}
                 cy={hoveredPoint.y}
-                r="5"
-                fill="#ffffff"
+                r="4"
+                fill="#FFFFFF"
                 stroke={accentColor}
                 strokeWidth="2"
               />
@@ -720,17 +708,17 @@ export const PeakChart: React.FC<PeakChartProps> = ({
 
           {/* X-Axis Labels */}
           {svgPoints.map((pt, i) => {
-            // Decimate labels if dense series (e.g. 96 intervals)
             const step = Math.max(1, Math.floor(svgPoints.length / 7));
             if (i % step !== 0 && i !== svgPoints.length - 1) return null;
             return (
               <text
                 key={i}
                 x={pt.x}
-                y={padding.top + graphHeight + 18}
+                y={padding.top + graphHeight + 16}
                 textAnchor="middle"
-                fill="#64748b"
-                fontSize="10"
+                fill="#71717A"
+                fontSize="9"
+                fontFamily="monospace"
                 fontWeight="500"
               >
                 {pt.data.label}
@@ -742,7 +730,7 @@ export const PeakChart: React.FC<PeakChartProps> = ({
         {/* Floating Tooltip Readout Overlay */}
         {hoveredPoint && (
           <div
-            className="pointer-events-none absolute z-20 rounded-xl bg-slate-950/95 border border-slate-700 px-3 py-2 text-xs shadow-xl backdrop-blur transition-transform"
+            className="pointer-events-none absolute z-20 rounded bg-[#0F0F12] border border-[#27272A] px-2.5 py-1.5 font-mono text-xs shadow-xl backdrop-blur"
             style={{
               left: `${Math.min(
                 Math.max(10, (hoveredPoint.x / svgWidth) * 100),
@@ -755,20 +743,20 @@ export const PeakChart: React.FC<PeakChartProps> = ({
               transform: 'translate(-50%, -110%)',
             }}
           >
-            <div className="font-semibold text-slate-200 border-b border-slate-800 pb-1 mb-1">
+            <div className="text-[11px] text-[#A1A1AA] border-b border-[#27272A] pb-1 mb-1 font-semibold">
               {hoveredPoint.data.timestamp || hoveredPoint.data.label}
             </div>
-            <div className="space-y-0.5">
+            <div className="space-y-0.5 text-[11px] tabular-nums">
               <div className="flex items-center justify-between space-x-3">
-                <span className="text-slate-400">Demand:</span>
-                <span className="font-mono font-bold text-cyan-400">
+                <span className="text-[#71717A]">Active Demand:</span>
+                <span className="font-bold text-cyan-400">
                   {hoveredPoint.data.value.toFixed(2)} kW
                 </span>
               </div>
               {hoveredPoint.data.secondaryValue !== undefined && (
                 <div className="flex items-center justify-between space-x-3">
-                  <span className="text-slate-400">Baseline:</span>
-                  <span className="font-mono text-slate-300">
+                  <span className="text-[#71717A]">Baseline:</span>
+                  <span className="text-[#A1A1AA]">
                     {hoveredPoint.data.secondaryValue.toFixed(2)} kW
                   </span>
                 </div>
@@ -779,26 +767,25 @@ export const PeakChart: React.FC<PeakChartProps> = ({
       </div>
 
       {/* Footer: Timestamp & Simulation Status */}
-      <div className="mt-2 pt-3 border-t border-slate-800/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1 text-[11px] text-slate-400">
+      <div className="mt-2 pt-2.5 border-t border-[#27272A] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1 text-[10px] font-mono text-[#71717A]">
         <div className="flex items-center space-x-1.5">
-          <Clock className="h-3.5 w-3.5 text-slate-500" />
+          <Clock className="h-3 w-3 text-[#52525B]" />
           <span>{activeUpdatedText}</span>
         </div>
-        <div className="flex items-center space-x-3 text-slate-400 font-medium">
+        <div className="flex items-center space-x-3 text-[#A1A1AA]">
           <div className="flex items-center space-x-1.5">
             <span
-              className="h-2 w-2 rounded-full"
+              className="h-1.5 w-1.5 rounded-full"
               style={{ backgroundColor: accentColor }}
             />
-            <span>Optimized Demand</span>
+            <span>OPTIMIZED DEMAND</span>
           </div>
           {secondarySvgPoints.length > 0 && (
             <div className="flex items-center space-x-1.5">
               <span
-                className="h-2 w-2 rounded-full"
-                style={{ backgroundColor: secondaryColor }}
+                className="h-1.5 w-1.5 rounded-full bg-[#52525B]"
               />
-              <span>Baseline Demand</span>
+              <span>BASELINE DEMAND</span>
             </div>
           )}
         </div>

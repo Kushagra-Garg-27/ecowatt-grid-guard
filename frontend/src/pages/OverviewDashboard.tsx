@@ -11,8 +11,11 @@ import {
   ShieldCheck,
   CheckCircle2,
   Sparkles,
+  Server,
+  Activity,
+  ArrowRight,
 } from 'lucide-react';
-import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, ReferenceLine } from 'recharts';
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, ReferenceLine, CartesianGrid } from 'recharts';
 import { BuildingStatus, ZoneSummary, DailyAnalyticsSummary } from '../types';
 import { PeakChart, PeakChartDataPoint, PeakChartPeriodData } from '@/components/ui/peak-chart';
 
@@ -122,15 +125,16 @@ export const OverviewDashboard: React.FC<OverviewProps> = ({ status, zones, summ
 
   if (!status) {
     return (
-      <div className="flex items-center justify-center h-64 text-slate-400">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500 mr-3" />
-        Loading building telemetry...
+      <div className="flex items-center justify-center h-64 text-[#71717A] font-mono text-xs">
+        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-emerald-500 mr-3" />
+        INITIALIZING BUILDING TELEMETRY STREAM...
       </div>
     );
   }
 
   const isExceeded = status.current_power_kw > status.demand_threshold_kw;
   const powerMargin = (status.demand_threshold_kw - status.current_power_kw).toFixed(2);
+  const powerPercent = Math.min(100, Math.round((status.current_power_kw / status.demand_threshold_kw) * 100));
 
   const chartData = summary?.intervals.map((inv) => ({
     time: inv.time_str,
@@ -139,97 +143,123 @@ export const OverviewDashboard: React.FC<OverviewProps> = ({ status, zones, summ
   })) || [];
 
   return (
-    <div className="space-y-6">
-      {/* Exceedance Alert Banner */}
+    <div className="space-y-4">
+      {/* Exceedance Alert Banner (Tactile Warning Box) */}
       {isExceeded && (
-        <div className="bg-rose-950/70 border border-rose-500/50 rounded-2xl p-4 flex items-center justify-between shadow-lg shadow-rose-950/40 animate-pulse">
+        <div className="bg-[#160B0E] border border-rose-500/40 rounded-lg p-3 flex items-center justify-between shadow-xs">
           <div className="flex items-center space-x-3">
-            <div className="p-2 bg-rose-500/20 rounded-xl text-rose-400">
-              <AlertTriangle className="h-6 w-6" />
+            <div className="p-1.5 bg-rose-500/10 text-rose-400 rounded border border-rose-500/30">
+              <AlertTriangle className="h-4 w-4" />
             </div>
             <div>
-              <h4 className="text-sm font-semibold text-rose-200">Demand Threshold Exceeded!</h4>
-              <p className="text-xs text-rose-300">
-                Current active power ({status.current_power_kw.toFixed(2)} kW) exceeds configured limit (
-                {status.demand_threshold_kw.toFixed(2)} kW). Target demand is {status.target_demand_kw.toFixed(2)} kW.
+              <h4 className="text-xs font-mono font-bold uppercase tracking-wide text-rose-200">
+                CRITICAL THRESHOLD VIOLATION DETECTED
+              </h4>
+              <p className="text-[11px] font-mono text-rose-300 tabular-nums">
+                Active load ({status.current_power_kw.toFixed(2)} kW) exceeds contract ceiling ({status.demand_threshold_kw.toFixed(2)} kW). Target limit: {status.target_demand_kw.toFixed(2)} kW.
               </p>
             </div>
           </div>
           <button
             onClick={() => onNavigateTab('optimizer')}
-            className="bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold px-4 py-2 rounded-xl transition shadow"
+            className="bg-rose-600 hover:bg-rose-500 text-white font-mono text-[11px] font-semibold px-3 py-1.5 rounded transition shadow-none cursor-pointer"
           >
-            Open Optimizer
+            DISPATCH OPTIMIZER &rarr;
           </button>
         </div>
       )}
 
-      {/* Primary KPI Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Primary KPI Bento Grid (21st.dev Server Card Style) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {/* Card 1: Power */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm relative overflow-hidden">
-          <div className="flex items-center justify-between text-slate-400 text-xs font-medium">
-            <span>Current Active Power</span>
-            <Zap className={`h-4 w-4 ${isExceeded ? 'text-rose-400' : 'text-emerald-400'}`} />
+        <div className="bento-surface bento-surface-hover p-3.5 space-y-2">
+          <div className="flex items-center justify-between text-[#71717A] text-[10px] font-mono uppercase tracking-wider">
+            <span>CURRENT ACTIVE LOAD</span>
+            <span className={`h-2 w-2 rounded-full ${isExceeded ? 'bg-rose-400 animate-ping' : 'bg-emerald-400'}`} />
           </div>
-          <div className="mt-2 flex items-baseline space-x-2">
-            <span className={`text-3xl font-bold tracking-tight ${isExceeded ? 'text-rose-400' : 'text-white'}`}>
+          <div className="flex items-baseline space-x-1.5">
+            <span className={`text-2xl font-mono font-bold tracking-tight tabular-nums ${isExceeded ? 'text-rose-400' : 'text-[#FAFAFA]'}`}>
               {status.current_power_kw.toFixed(2)}
             </span>
-            <span className="text-slate-400 text-sm">kW</span>
+            <span className="text-xs font-mono text-[#71717A]">kW</span>
           </div>
-          <div className="mt-3 flex items-center justify-between text-xs text-slate-400 border-t border-slate-800/80 pt-2.5">
-            <span>Threshold: {status.demand_threshold_kw.toFixed(2)} kW</span>
-            <span className={isExceeded ? 'text-rose-400 font-medium' : 'text-emerald-400'}>
-              {isExceeded ? `+${Math.abs(parseFloat(powerMargin))} kW Excess` : `${powerMargin} kW Headroom`}
+          {/* Threshold Progress Bar */}
+          <div className="w-full bg-[#18181B] h-1.5 rounded-full overflow-hidden border border-[#27272A]">
+            <div
+              className={`h-full rounded-full transition-all duration-500 ${isExceeded ? 'bg-rose-500' : 'bg-emerald-500'}`}
+              style={{ width: `${powerPercent}%` }}
+            />
+          </div>
+          <div className="flex items-center justify-between text-[10px] font-mono tabular-nums text-[#71717A] pt-1 border-t border-[#27272A]/80">
+            <span>LIMIT: {status.demand_threshold_kw.toFixed(2)} kW</span>
+            <span className={isExceeded ? 'text-rose-400 font-semibold' : 'text-emerald-400 font-semibold'}>
+              {isExceeded ? `+${Math.abs(parseFloat(powerMargin))} kW EXCESS` : `${powerMargin} kW HEADROOM`}
             </span>
           </div>
         </div>
 
         {/* Card 2: Target & Peak */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm relative overflow-hidden">
-          <div className="flex items-center justify-between text-slate-400 text-xs font-medium">
-            <span>Demand Target & Peak</span>
-            <Target className="h-4 w-4 text-cyan-400" />
+        <div className="bento-surface bento-surface-hover p-3.5 space-y-2">
+          <div className="flex items-center justify-between text-[#71717A] text-[10px] font-mono uppercase tracking-wider">
+            <span>PEAK DEMAND & TARGET</span>
+            <Target className="h-3.5 w-3.5 text-cyan-400" />
           </div>
-          <div className="mt-2 flex items-baseline space-x-2">
-            <span className="text-3xl font-bold tracking-tight text-white">{status.target_demand_kw.toFixed(2)}</span>
-            <span className="text-slate-400 text-sm">kW Target</span>
+          <div className="flex items-baseline space-x-1.5">
+            <span className="text-2xl font-mono font-bold tracking-tight tabular-nums text-[#FAFAFA]">
+              {status.target_demand_kw.toFixed(2)}
+            </span>
+            <span className="text-xs font-mono text-[#71717A]">kW TARGET</span>
           </div>
-          <div className="mt-3 flex items-center justify-between text-xs text-slate-400 border-t border-slate-800/80 pt-2.5">
-            <span>Today's Peak</span>
+          <div className="w-full bg-[#18181B] h-1.5 rounded-full overflow-hidden border border-[#27272A]">
+            <div
+              className="h-full rounded-full bg-cyan-500 transition-all duration-500"
+              style={{ width: `${Math.min(100, (status.peak_demand_today_kw / status.demand_threshold_kw) * 100)}%` }}
+            />
+          </div>
+          <div className="flex items-center justify-between text-[10px] font-mono tabular-nums text-[#71717A] pt-1 border-t border-[#27272A]/80">
+            <span>TODAY'S PEAK</span>
             <span className="text-cyan-400 font-semibold">{status.peak_demand_today_kw.toFixed(2)} kW</span>
           </div>
         </div>
 
         {/* Card 3: Energy & Cost */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm relative overflow-hidden">
-          <div className="flex items-center justify-between text-slate-400 text-xs font-medium">
-            <span>Est. Daily Electricity Cost</span>
-            <DollarSign className="h-4 w-4 text-amber-400" />
+        <div className="bento-surface bento-surface-hover p-3.5 space-y-2">
+          <div className="flex items-center justify-between text-[#71717A] text-[10px] font-mono uppercase tracking-wider">
+            <span>EST. DAILY ELECTRICITY COST</span>
+            <DollarSign className="h-3.5 w-3.5 text-amber-400" />
           </div>
-          <div className="mt-2 flex items-baseline space-x-2">
-            <span className="text-3xl font-bold tracking-tight text-white">₹{status.estimated_cost_today.toFixed(2)}</span>
-            <span className="text-slate-400 text-sm">INR</span>
+          <div className="flex items-baseline space-x-1.5">
+            <span className="text-2xl font-mono font-bold tracking-tight tabular-nums text-[#FAFAFA]">
+              ₹{status.estimated_cost_today.toFixed(2)}
+            </span>
+            <span className="text-xs font-mono text-[#71717A]">INR</span>
           </div>
-          <div className="mt-3 flex items-center justify-between text-xs text-slate-400 border-t border-slate-800/80 pt-2.5">
-            <span>Energy Consumed</span>
-            <span className="text-slate-200 font-semibold">{status.current_energy_kwh.toFixed(1)} kWh</span>
+          <div className="w-full bg-[#18181B] h-1.5 rounded-full overflow-hidden border border-[#27272A]">
+            <div className="h-full rounded-full bg-amber-500 transition-all duration-500 w-3/4" />
+          </div>
+          <div className="flex items-center justify-between text-[10px] font-mono tabular-nums text-[#71717A] pt-1 border-t border-[#27272A]/80">
+            <span>CONSUMED ENERGY</span>
+            <span className="text-[#A1A1AA] font-semibold">{status.current_energy_kwh.toFixed(1)} kWh</span>
           </div>
         </div>
 
         {/* Card 4: Carbon Emissions */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm relative overflow-hidden">
-          <div className="flex items-center justify-between text-slate-400 text-xs font-medium">
-            <span>Est. Carbon Footprint</span>
-            <Leaf className="h-4 w-4 text-emerald-400" />
+        <div className="bento-surface bento-surface-hover p-3.5 space-y-2">
+          <div className="flex items-center justify-between text-[#71717A] text-[10px] font-mono uppercase tracking-wider">
+            <span>EST. CARBON EMISSIONS</span>
+            <Leaf className="h-3.5 w-3.5 text-emerald-400" />
           </div>
-          <div className="mt-2 flex items-baseline space-x-2">
-            <span className="text-3xl font-bold tracking-tight text-white">{status.estimated_carbon_kg_today.toFixed(1)}</span>
-            <span className="text-slate-400 text-sm">kg CO2</span>
+          <div className="flex items-baseline space-x-1.5">
+            <span className="text-2xl font-mono font-bold tracking-tight tabular-nums text-[#FAFAFA]">
+              {status.estimated_carbon_kg_today.toFixed(1)}
+            </span>
+            <span className="text-xs font-mono text-[#71717A]">kg CO2</span>
           </div>
-          <div className="mt-3 flex items-center justify-between text-xs text-slate-400 border-t border-slate-800/80 pt-2.5">
-            <span>Avoided Emissions</span>
+          <div className="w-full bg-[#18181B] h-1.5 rounded-full overflow-hidden border border-[#27272A]">
+            <div className="h-full rounded-full bg-emerald-500 transition-all duration-500 w-2/3" />
+          </div>
+          <div className="flex items-center justify-between text-[10px] font-mono tabular-nums text-[#71717A] pt-1 border-t border-[#27272A]/80">
+            <span>AVOIDED EMISSIONS</span>
             <span className="text-emerald-400 font-semibold">
               {summary ? `${summary.carbon_avoided_kg.toFixed(2)} kg` : '0.00 kg'}
             </span>
@@ -237,50 +267,50 @@ export const OverviewDashboard: React.FC<OverviewProps> = ({ status, zones, summ
         </div>
       </div>
 
-      {/* Secondary Status Badges */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-3 flex items-center space-x-3">
-          <div className="p-2 bg-emerald-500/10 rounded-lg text-emerald-400">
-            <ShieldCheck className="h-5 w-5" />
+      {/* Secondary Status Badges (Tactile Telemetry Pill Row) */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+        <div className="bg-[#0F0F12] border border-[#27272A] rounded-md p-2.5 flex items-center space-x-2.5">
+          <div className="p-1 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+            <ShieldCheck className="h-4 w-4" />
           </div>
-          <div>
-            <div className="text-[11px] text-slate-400">Critical Loads</div>
-            <div className="text-xs font-semibold text-emerald-400">100% Protected</div>
-          </div>
-        </div>
-
-        <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-3 flex items-center space-x-3">
-          <div className="p-2 bg-amber-500/10 rounded-lg text-amber-400">
-            <Scissors className="h-5 w-5" />
-          </div>
-          <div>
-            <div className="text-[11px] text-slate-400">Curtailed Loads</div>
-            <div className="text-xs font-semibold text-slate-200">{status.curtailed_loads_count} Active</div>
+          <div className="font-mono">
+            <div className="text-[10px] text-[#71717A] uppercase">CRITICAL LOADS</div>
+            <div className="text-[11px] font-bold text-emerald-400">100% PROTECTED</div>
           </div>
         </div>
 
-        <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-3 flex items-center space-x-3">
-          <div className="p-2 bg-cyan-500/10 rounded-lg text-cyan-400">
-            <Calendar className="h-5 w-5" />
+        <div className="bg-[#0F0F12] border border-[#27272A] rounded-md p-2.5 flex items-center space-x-2.5">
+          <div className="p-1 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">
+            <Scissors className="h-4 w-4" />
           </div>
-          <div>
-            <div className="text-[11px] text-slate-400">Shifted Loads</div>
-            <div className="text-xs font-semibold text-slate-200">{status.shifted_loads_count} Scheduled</div>
+          <div className="font-mono tabular-nums">
+            <div className="text-[10px] text-[#71717A] uppercase">CURTAILED LOADS</div>
+            <div className="text-[11px] font-bold text-[#FAFAFA]">{status.curtailed_loads_count} ACTIVE</div>
           </div>
         </div>
 
-        <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-3 flex items-center space-x-3">
-          <div className="p-2 bg-emerald-500/10 rounded-lg text-emerald-400">
-            <CheckCircle2 className="h-5 w-5" />
+        <div className="bg-[#0F0F12] border border-[#27272A] rounded-md p-2.5 flex items-center space-x-2.5">
+          <div className="p-1 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+            <Calendar className="h-4 w-4" />
           </div>
-          <div>
-            <div className="text-[11px] text-slate-400">Feedback Loop</div>
-            <div className="text-xs font-semibold text-emerald-400">Closed-Loop Active</div>
+          <div className="font-mono tabular-nums">
+            <div className="text-[10px] text-[#71717A] uppercase">SHIFTED LOADS</div>
+            <div className="text-[11px] font-bold text-[#FAFAFA]">{status.shifted_loads_count} SCHEDULED</div>
+          </div>
+        </div>
+
+        <div className="bg-[#0F0F12] border border-[#27272A] rounded-md p-2.5 flex items-center space-x-2.5">
+          <div className="p-1 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+            <CheckCircle2 className="h-4 w-4" />
+          </div>
+          <div className="font-mono">
+            <div className="text-[10px] text-[#71717A] uppercase">FEEDBACK LOOP</div>
+            <div className="text-[11px] font-bold text-emerald-400">CLOSED-LOOP ACTIVE</div>
           </div>
         </div>
       </div>
 
-      {/* Featured Executive Stat Card: PeakChart */}
+      {/* Hero Stat Card: PeakChart (Refactored to 21st.dev Vercel Style) */}
       <PeakChart
         title="Peak Demand Limiting & Shaving"
         value={summary?.optimized_peak_power_kw ?? status.peak_demand_today_kw}
@@ -299,114 +329,223 @@ export const OverviewDashboard: React.FC<OverviewProps> = ({ status, zones, summ
       />
 
       {/* Interactive Architecture Flow Teaser */}
-      <div className="bg-gradient-to-r from-slate-900 via-slate-900 to-emerald-950/40 border border-slate-800 hover:border-emerald-500/40 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 transition">
-        <div className="flex items-center space-x-3">
-          <div className="p-2.5 bg-emerald-500/10 rounded-xl text-emerald-400 border border-emerald-500/20">
-            <Sparkles className="h-5 w-5" />
+      <div className="bento-surface bento-surface-hover p-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div className="flex items-center space-x-2.5">
+          <div className="p-1.5 bg-[#18181B] text-emerald-400 rounded border border-[#27272A]">
+            <Sparkles className="h-4 w-4" />
           </div>
           <div>
-            <h4 className="text-sm font-semibold text-white">System Architecture & IoT Flow Bento</h4>
-            <p className="text-xs text-slate-400">
-              Explore the live interactive flow diagram, multi-protocol sync hub, and scrubbable predictive load forecast.
+            <h4 className="text-xs font-mono font-semibold text-[#FAFAFA] uppercase tracking-wide">
+              SYSTEM ARCHITECTURE & IOT FLOW BENTO
+            </h4>
+            <p className="text-[11px] font-mono text-[#71717A]">
+              Interactive protocol synchronization hub, CoAP packet streaming, and scrubbable load forecast.
             </p>
           </div>
         </div>
         <button
           onClick={() => onNavigateTab('architecture')}
-          className="bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-slate-700 text-xs font-semibold px-4 py-2 rounded-xl transition shadow-sm whitespace-nowrap cursor-pointer"
+          className="bg-[#18181B] hover:bg-[#27272A] text-emerald-400 border border-[#27272A] hover:border-emerald-500/40 text-[11px] font-mono font-medium px-3 py-1.5 rounded transition shadow-none whitespace-nowrap cursor-pointer flex items-center space-x-1"
         >
-          View Architecture Bento &rarr;
+          <span>EXPLORE BENTO</span>
+          <ArrowRight className="h-3 w-3" />
         </button>
       </div>
 
-      {/* Chart: 24h Demand Trend */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-4 border-b border-slate-800 gap-2">
+      {/* Chart: 24h Demand Trend (Grafana / Vercel Industrial Chrome) */}
+      <div className="bento-surface p-4 space-y-3">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-2.5 border-b border-[#27272A] gap-2">
           <div>
-            <h3 className="text-sm font-semibold text-white">24-Hour Building Demand vs Limit</h3>
-            <p className="text-xs text-slate-400">96 intervals (15-min) comparing baseline and optimized load curves</p>
+            <div className="flex items-center space-x-2">
+              <Activity className="h-3.5 w-3.5 text-emerald-400" />
+              <h3 className="text-xs font-mono font-semibold uppercase tracking-wider text-[#FAFAFA]">
+                24-HOUR CLOSED-LOOP DISPATCH DEMAND
+              </h3>
+            </div>
+            <p className="text-[11px] font-mono text-[#71717A] mt-0.5">
+              96 intervals (15-min) comparing baseline unmanaged load vs closed-loop optimized dispatch
+            </p>
           </div>
-          <div className="flex items-center space-x-4 text-xs">
-            <div className="flex items-center space-x-1.5">
-              <span className="h-2 w-2 rounded-full bg-slate-500" />
-              <span className="text-slate-400">Baseline (Unmanaged)</span>
-            </div>
-            <div className="flex items-center space-x-1.5">
-              <span className="h-2 w-2 rounded-full bg-emerald-400" />
-              <span className="text-emerald-400 font-medium">Optimized Demand</span>
-            </div>
-            <div className="flex items-center space-x-1.5">
-              <span className="h-2 w-2 rounded-full bg-rose-500" />
-              <span className="text-rose-400">Threshold (7.0 kW)</span>
-            </div>
+          <div className="flex items-center space-x-2 text-[10px] font-mono">
+            <span className="px-1.5 py-0.5 rounded bg-[#18181B] border border-[#27272A] text-[#71717A]">
+              SAMPLING: 15-MIN
+            </span>
+            <span className="px-1.5 py-0.5 rounded bg-[#18181B] border border-[#27272A] text-[#71717A]">
+              WINDOW: 24-HR
+            </span>
+            <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-semibold">
+              ALGO: CLOSED-LOOP
+            </span>
           </div>
         </div>
 
-        <div className="h-72 mt-4">
+        <div className="h-64 mt-2">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
               <defs>
                 <linearGradient id="optGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.4} />
+                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.25} />
                   <stop offset="95%" stopColor="#10b981" stopOpacity={0.0} />
                 </linearGradient>
                 <linearGradient id="baseGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#64748b" stopOpacity={0.25} />
-                  <stop offset="95%" stopColor="#64748b" stopOpacity={0.0} />
+                  <stop offset="5%" stopColor="#52525b" stopOpacity={0.15} />
+                  <stop offset="95%" stopColor="#52525b" stopOpacity={0.0} />
                 </linearGradient>
               </defs>
-              <XAxis dataKey="time" stroke="#475569" fontSize={11} interval={7} />
-              <YAxis stroke="#475569" fontSize={11} unit=" kW" domain={[0, 10]} />
+              <CartesianGrid stroke="#27272A" strokeDasharray="2 3" vertical={false} />
+              <XAxis
+                dataKey="time"
+                stroke="#3F3F46"
+                fontSize={10}
+                interval={7}
+                tick={{ fill: '#71717A', fontFamily: 'JetBrains Mono, monospace' }}
+              />
+              <YAxis
+                stroke="#3F3F46"
+                fontSize={10}
+                unit=" kW"
+                domain={[0, 10]}
+                tick={{ fill: '#71717A', fontFamily: 'JetBrains Mono, monospace' }}
+              />
               <Tooltip
-                contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '0.75rem', fontSize: '12px' }}
+                contentStyle={{
+                  backgroundColor: '#0F0F12',
+                  borderColor: '#27272A',
+                  borderRadius: '6px',
+                  fontSize: '11px',
+                  fontFamily: 'JetBrains Mono, monospace',
+                  color: '#FAFAFA',
+                }}
                 formatter={(val: any) => [`${parseFloat(val).toFixed(2)} kW`]}
               />
-              <ReferenceLine y={status.demand_threshold_kw} stroke="#f43f5e" strokeDasharray="4 4" label={{ value: 'Threshold 7.0kW', fill: '#f43f5e', fontSize: 10, position: 'top' }} />
-              <ReferenceLine y={status.target_demand_kw} stroke="#06b6d4" strokeDasharray="3 3" label={{ value: 'Target 6.8kW', fill: '#06b6d4', fontSize: 10, position: 'bottom' }} />
-              <Area type="monotone" dataKey="baseline" stroke="#64748b" strokeWidth={1.5} fillOpacity={1} fill="url(#baseGrad)" name="Baseline" />
-              <Area type="monotone" dataKey="optimized" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#optGrad)" name="Optimized" />
+              <ReferenceLine
+                y={status.demand_threshold_kw}
+                stroke="#F43F5E"
+                strokeDasharray="3 3"
+                label={{
+                  value: 'LIMIT 7.00kW',
+                  fill: '#F43F5E',
+                  fontSize: 9,
+                  position: 'top',
+                  fontFamily: 'JetBrains Mono, monospace',
+                }}
+              />
+              <ReferenceLine
+                y={status.target_demand_kw}
+                stroke="#06B6D4"
+                strokeDasharray="2 2"
+                label={{
+                  value: 'TARGET 6.80kW',
+                  fill: '#06B6D4',
+                  fontSize: 9,
+                  position: 'bottom',
+                  fontFamily: 'JetBrains Mono, monospace',
+                }}
+              />
+              <Area
+                type="monotone"
+                dataKey="baseline"
+                stroke="#52525B"
+                strokeWidth={1.2}
+                strokeDasharray="3 3"
+                fillOpacity={1}
+                fill="url(#baseGrad)"
+                name="Baseline"
+              />
+              <Area
+                type="monotone"
+                dataKey="optimized"
+                stroke="#10B981"
+                strokeWidth={2}
+                fillOpacity={1}
+                fill="url(#optGrad)"
+                name="Optimized"
+              />
             </AreaChart>
           </ResponsiveContainer>
         </div>
+
+        {/* Legend */}
+        <div className="flex items-center justify-end space-x-4 pt-2 border-t border-[#27272A]/70 text-[10px] font-mono text-[#71717A]">
+          <div className="flex items-center space-x-1.5">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#52525B]" />
+            <span>BASELINE DEMAND</span>
+          </div>
+          <div className="flex items-center space-x-1.5">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#10B981]" />
+            <span className="text-emerald-400 font-semibold">OPTIMIZED DEMAND</span>
+          </div>
+          <div className="flex items-center space-x-1.5">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#F43F5E]" />
+            <span>LIMIT (7.00 kW)</span>
+          </div>
+        </div>
       </div>
 
-      {/* Five Zones Snapshot */}
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold text-white">Building Zones Operational Status</h3>
+      {/* Five Zones Snapshot (21st.dev Server Card Grid) */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <Server className="h-3.5 w-3.5 text-[#71717A]" />
+            <h3 className="text-xs font-mono font-semibold uppercase tracking-wider text-[#FAFAFA]">
+              BUILDING ZONES TELEMETRY NODES
+            </h3>
+          </div>
           <button
             onClick={() => onNavigateTab('zones')}
-            className="text-xs text-emerald-400 hover:text-emerald-300 font-medium"
+            className="text-[11px] font-mono text-emerald-400 hover:text-emerald-300 font-medium cursor-pointer"
           >
-            View All Zones &rarr;
+            VIEW ALL NODES &rarr;
           </button>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-          {zones.map((z) => (
-            <div key={z.zone_id} className="bg-slate-900 border border-slate-800 rounded-xl p-3.5 hover:border-slate-700 transition">
-              <div className="flex items-center justify-between text-xs font-semibold text-slate-200">
-                <span className="truncate">{z.name}</span>
-                <span className={`text-[10px] px-1.5 py-0.5 rounded ${
-                  z.sensor_health === 'HEALTHY' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'
-                }`}>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
+          {zones.map((z, idx) => (
+            <div
+              key={z.zone_id}
+              className="bento-surface bento-surface-hover p-3 space-y-2"
+            >
+              <div className="flex items-center justify-between text-[10px] font-mono">
+                <span className="text-[#71717A]">NODE-ESP32-0{idx + 1}</span>
+                <span
+                  className={`px-1.5 py-0.5 rounded font-semibold ${
+                    z.sensor_health === 'HEALTHY'
+                      ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                      : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                  }`}
+                >
                   {z.sensor_health}
                 </span>
               </div>
-              <div className="mt-2 text-xl font-bold text-white">
-                {z.power_kw.toFixed(2)} <span className="text-xs font-normal text-slate-400">kW</span>
+              <div>
+                <div className="text-xs font-semibold text-[#FAFAFA] truncate" title={z.name}>
+                  {z.name}
+                </div>
+                <div className="text-lg font-mono font-bold tabular-nums text-[#FAFAFA] mt-0.5">
+                  {z.power_kw.toFixed(2)} <span className="text-[10px] font-normal text-[#71717A]">kW</span>
+                </div>
               </div>
-              <div className="mt-2 space-y-1 text-[11px] text-slate-400">
+
+              {/* Progress */}
+              <div className="w-full bg-[#18181B] h-1 rounded-full overflow-hidden border border-[#27272A]">
+                <div
+                  className="h-full rounded-full bg-emerald-500"
+                  style={{ width: `${Math.min(100, (z.power_kw / 5.0) * 100)}%` }}
+                />
+              </div>
+
+              <div className="space-y-0.5 text-[10px] font-mono tabular-nums text-[#71717A] pt-1 border-t border-[#27272A]/80">
                 <div className="flex justify-between">
-                  <span>Occupancy:</span>
-                  <span className="text-slate-200 font-medium">{z.occupancy} / {z.max_occupancy}</span>
+                  <span>OCCUPANCY:</span>
+                  <span className="text-[#A1A1AA]">{z.occupancy}/{z.max_occupancy}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Temp:</span>
-                  <span className="text-slate-200 font-medium">{z.temperature_c.toFixed(1)} °C</span>
+                  <span>TEMP:</span>
+                  <span className="text-[#A1A1AA]">{z.temperature_c.toFixed(1)}°C</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Voltage/Current:</span>
-                  <span className="text-slate-200 font-medium">{z.voltage_v.toFixed(0)}V / {z.current_a.toFixed(1)}A</span>
+                  <span>GRID:</span>
+                  <span className="text-[#A1A1AA]">{z.voltage_v.toFixed(0)}V · {z.current_a.toFixed(1)}A</span>
                 </div>
               </div>
             </div>
@@ -416,4 +555,3 @@ export const OverviewDashboard: React.FC<OverviewProps> = ({ status, zones, summ
     </div>
   );
 };
-

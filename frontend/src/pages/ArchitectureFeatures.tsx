@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { InkOrbitFeatures } from '@/components/ui/ink-orbit-features';
-import { Sparkles, Radio, Zap, Shield, Cpu, RefreshCw, BarChart2 } from 'lucide-react';
+import { Sparkles, Radio, Zap, Shield } from 'lucide-react';
 
 interface ArchitectureFeaturesProps {
   onNavigateTab: (tab: string) => void;
@@ -40,41 +40,41 @@ export const ArchitectureFeatures: React.FC<ArchitectureFeaturesProps> = ({ onNa
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header & Mode Switcher */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bento-surface rounded-lg p-3.5 sm:p-4 border border-[#27272A] border-t-white/[0.08]">
         <div>
           <div className="flex items-center space-x-2">
-            <span className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-              <Sparkles className="h-4 w-4" />
+            <span className="font-mono text-[10px] uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+              INTERACTIVE BENTO
             </span>
-            <h2 className="text-base font-semibold text-white tracking-tight">
-              Interactive System Architecture & Feature Flow
+            <h2 className="text-sm font-semibold tracking-tight text-zinc-100 uppercase">
+              System Architecture & Feature Flow
             </h2>
           </div>
-          <p className="text-xs text-slate-400 mt-1 max-w-2xl">
+          <p className="font-mono text-[11px] text-zinc-400 mt-0.5 max-w-2xl">
             Live interactive bento diagram showcasing telemetry flow, protocol gateway synchronization, and scrubbable predictive load forecasting.
           </p>
         </div>
 
         {/* View Mode Toggle */}
-        <div className="flex items-center bg-slate-950/80 p-1 rounded-xl border border-slate-800 text-xs shrink-0">
+        <div className="flex items-center bg-[#09090B] p-0.5 rounded-md border border-[#27272A] text-xs shrink-0 font-mono">
           <button
             onClick={() => setActiveMode('ecowatt')}
-            className={`px-3 py-1.5 rounded-lg font-medium transition ${
+            className={`px-2.5 py-1 rounded text-xs font-medium transition ${
               activeMode === 'ecowatt'
-                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shadow-sm'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60'
+                ? 'bg-[#18181B] text-emerald-400 border border-[#27272A] shadow-sm'
+                : 'text-zinc-500 hover:text-zinc-300'
             }`}
           >
             EcoWatt Microgrid Mode
           </button>
           <button
             onClick={() => setActiveMode('demo')}
-            className={`px-3 py-1.5 rounded-lg font-medium transition ${
+            className={`px-2.5 py-1 rounded text-xs font-medium transition ${
               activeMode === 'demo'
-                ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 shadow-sm'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60'
+                ? 'bg-[#18181B] text-cyan-400 border border-[#27272A] shadow-sm'
+                : 'text-zinc-500 hover:text-zinc-300'
             }`}
           >
             Default SaaS Template Mode
@@ -83,7 +83,7 @@ export const ArchitectureFeatures: React.FC<ArchitectureFeaturesProps> = ({ onNa
       </div>
 
       {/* Embedded InkOrbitFeatures Component */}
-      <div className="rounded-2xl overflow-hidden border border-slate-800/80 shadow-2xl">
+      <div className="rounded-lg overflow-hidden border border-[#27272A]">
         {activeMode === 'ecowatt' ? (
           <InkOrbitFeatures {...ecowattProps} />
         ) : (
@@ -92,34 +92,34 @@ export const ArchitectureFeatures: React.FC<ArchitectureFeaturesProps> = ({ onNa
       </div>
 
       {/* Architectural Pillars Context Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-2">
-          <div className="flex items-center space-x-2 text-xs font-semibold text-emerald-400">
-            <Radio className="h-4 w-4" />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="bento-surface rounded-lg p-3.5 space-y-1.5 border border-[#27272A] border-t-white/[0.08]">
+          <div className="flex items-center space-x-2 font-mono text-[11px] font-semibold text-emerald-400 uppercase tracking-wider">
+            <Radio className="h-3.5 w-3.5" />
             <span>CoAP Telemetry Ingestion</span>
           </div>
-          <p className="text-xs text-slate-400 leading-relaxed">
+          <p className="text-xs text-zinc-400 leading-relaxed">
             Lightweight UDP datagrams on port 5683 stream 15-minute power, voltage, current, and occupancy readings from 5 campus building zones.
           </p>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-2">
-          <div className="flex items-center space-x-2 text-xs font-semibold text-cyan-400">
-            <Zap className="h-4 w-4" />
+        <div className="bento-surface rounded-lg p-3.5 space-y-1.5 border border-[#27272A] border-t-white/[0.08]">
+          <div className="flex items-center space-x-2 font-mono text-[11px] font-semibold text-cyan-400 uppercase tracking-wider">
+            <Zap className="h-3.5 w-3.5" />
             <span>Closed-Loop MQTT Control</span>
           </div>
-          <p className="text-xs text-slate-400 leading-relaxed">
+          <p className="text-xs text-zinc-400 leading-relaxed">
             QoS 1 actuation commands modulate flexible loads and reschedule deferrable EV charging, verified through post-actuation remeasurement.
           </p>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-2">
-          <div className="flex items-center space-x-2 text-xs font-semibold text-amber-400">
-            <Shield className="h-4 w-4" />
+        <div className="bento-surface rounded-lg p-3.5 space-y-1.5 border border-[#27272A] border-t-white/[0.08]">
+          <div className="flex items-center space-x-2 font-mono text-[11px] font-semibold text-amber-400 uppercase tracking-wider">
+            <Shield className="h-3.5 w-3.5" />
             <span>Critical Load Immunity</span>
           </div>
-          <p className="text-xs text-slate-400 leading-relaxed">
-            Server rooms and safety systems are assigned a Suitability Index of 0 ($S_k = 0$), guaranteeing 100% protection against load shedding.
+          <p className="text-xs text-zinc-400 leading-relaxed">
+            Server rooms and safety systems are assigned a Suitability Index of 0 (S_k = 0), guaranteeing 100% protection against load shedding.
           </p>
         </div>
       </div>

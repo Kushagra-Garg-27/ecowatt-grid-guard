@@ -29,7 +29,7 @@ export const LoadManagement: React.FC<LoadManagementProps> = ({ loads, onRefresh
   const handleCommand = async (load: LoadItem, action: string, targetLevel: number) => {
     if (load.category === 'CRITICAL' && targetLevel < 1.0) {
       setFeedbackMsg({
-        text: `CRITICAL PROTECTION: ${load.name} cannot be curtailed under system safety rules.`,
+        text: `CRITICAL LOAD PROTECTION: ${load.name} cannot be curtailed under system safety invariants.`,
         type: 'error',
       });
       return;
@@ -40,7 +40,7 @@ export const LoadManagement: React.FC<LoadManagementProps> = ({ loads, onRefresh
     try {
       await sendLoadCommand(load.id, action, targetLevel);
       setFeedbackMsg({
-        text: `Command sent for ${load.name}: ${action} (target ${(targetLevel * 100).toFixed(0)}%)`,
+        text: `MQTT command dispatched for ${load.name}: ${action} (target ${(targetLevel * 100).toFixed(0)}%)`,
         type: 'success',
       });
       onRefresh();
@@ -55,25 +55,27 @@ export const LoadManagement: React.FC<LoadManagementProps> = ({ loads, onRefresh
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+    <div className="space-y-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-2 border-b border-[#27272A] gap-2">
         <div>
-          <h2 className="text-lg font-bold text-white tracking-tight">Electrical Load Inventory & Actuator Control</h2>
-          <p className="text-xs text-slate-400">
-            Control smart actuators via MQTT (QoS 1). Critical loads are hardware & software protected.
+          <h2 className="text-sm font-mono font-bold uppercase tracking-wider text-[#FAFAFA]">
+            ELECTRICAL LOAD INVENTORY & ACTUATOR DISPATCH
+          </h2>
+          <p className="text-[11px] font-mono text-[#71717A] mt-0.5">
+            Real-time MQTT QoS 1 actuator feedback &bull; Critical loads hardware/software locked
           </p>
         </div>
 
         {/* Filter Pills */}
-        <div className="flex items-center space-x-1.5 bg-slate-900 border border-slate-800 p-1 rounded-xl text-xs">
+        <div className="flex items-center space-x-1 bg-[#09090B] border border-[#27272A] p-0.5 rounded text-[11px] font-mono">
           {['ALL', 'CRITICAL', 'FLEXIBLE', 'DEFERRABLE'].map((cat) => (
             <button
               key={cat}
               onClick={() => setFilterCategory(cat)}
-              className={`px-3 py-1 rounded-lg font-medium transition ${
+              className={`px-2.5 py-1 rounded transition cursor-pointer ${
                 filterCategory === cat
-                  ? 'bg-emerald-600 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'bg-[#18181B] text-[#FAFAFA] border border-[#27272A] shadow-xs'
+                  : 'text-[#71717A] hover:text-[#A1A1AA] border border-transparent'
               }`}
             >
               {cat}
@@ -85,52 +87,52 @@ export const LoadManagement: React.FC<LoadManagementProps> = ({ loads, onRefresh
       {/* Feedback Toast */}
       {feedbackMsg && (
         <div
-          className={`p-3 rounded-xl border text-xs flex items-center justify-between ${
+          className={`p-2.5 rounded border text-xs font-mono flex items-center justify-between ${
             feedbackMsg.type === 'error'
-              ? 'bg-rose-950/60 border-rose-500/40 text-rose-300'
-              : 'bg-emerald-950/60 border-emerald-500/40 text-emerald-300'
+              ? 'bg-[#160B0E] border-rose-500/40 text-rose-300'
+              : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
           }`}
         >
           <span>{feedbackMsg.text}</span>
-          <button onClick={() => setFeedbackMsg(null)} className="text-slate-400 hover:text-white font-bold ml-4">
+          <button onClick={() => setFeedbackMsg(null)} className="text-[#71717A] hover:text-[#FAFAFA] font-bold ml-4 cursor-pointer">
             &times;
           </button>
         </div>
       )}
 
       {/* Loads Table / Grid */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-sm">
+      <div className="bento-surface overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-slate-950/80 text-slate-400 uppercase tracking-wider text-[10px] border-b border-slate-800">
+          <table className="w-full text-left text-xs font-mono">
+            <thead className="bg-[#121215] text-[#71717A] uppercase tracking-wider text-[10px] border-b border-[#27272A]">
               <tr>
-                <th className="py-3 px-4">Load Name & ID</th>
-                <th className="py-3 px-3">Zone</th>
-                <th className="py-3 px-3">Category</th>
-                <th className="py-3 px-3">Rated Power</th>
-                <th className="py-3 px-3">Current Power</th>
-                <th className="py-3 px-3">LPS Score</th>
-                <th className="py-3 px-3">Actuator State</th>
-                <th className="py-3 px-4 text-right">Manual Demonstration Controls</th>
+                <th className="py-2.5 px-3">LOAD ID & NAME</th>
+                <th className="py-2.5 px-3">ZONE</th>
+                <th className="py-2.5 px-3">CATEGORY</th>
+                <th className="py-2.5 px-3">RATED POWER</th>
+                <th className="py-2.5 px-3">ACTIVE POWER</th>
+                <th className="py-2.5 px-3">LPS SCORE</th>
+                <th className="py-2.5 px-3">ACTUATOR</th>
+                <th className="py-2.5 px-3 text-right">MANUAL DISPATCH</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60 text-slate-300">
+            <tbody className="divide-y divide-[#27272A]/60 text-[#A1A1AA] tabular-nums">
               {filteredLoads.map((load) => {
                 const isCritical = load.category === 'CRITICAL';
                 const isExecuting = executingLoadId === load.id;
 
                 return (
-                  <tr key={load.id} className="hover:bg-slate-800/30 transition">
-                    <td className="py-3 px-4">
-                      <div className="font-semibold text-white">{load.name}</div>
-                      <div className="text-[10px] text-slate-400 font-mono">{load.id}</div>
+                  <tr key={load.id} className="hover:bg-[#18181B] transition">
+                    <td className="py-2.5 px-3">
+                      <div className="font-semibold text-[#FAFAFA]">{load.name}</div>
+                      <div className="text-[10px] text-[#71717A]">{load.id}</div>
                     </td>
-                    <td className="py-3 px-3 font-medium text-slate-300 capitalize">
+                    <td className="py-2.5 px-3 text-[#A1A1AA] uppercase text-[11px]">
                       {load.zone_id.replace('_', ' ')}
                     </td>
-                    <td className="py-3 px-3">
+                    <td className="py-2.5 px-3">
                       <span
-                        className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                        className={`text-[9px] px-1.5 py-0.5 rounded font-bold ${
                           isCritical
                             ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
                             : load.category === 'FLEXIBLE'
@@ -141,25 +143,23 @@ export const LoadManagement: React.FC<LoadManagementProps> = ({ loads, onRefresh
                         {load.category}
                       </span>
                     </td>
-                    <td className="py-3 px-3 font-mono">{load.rated_power_kw.toFixed(2)} kW</td>
-                    <td className="py-3 px-3 font-mono font-bold text-white">
+                    <td className="py-2.5 px-3 text-[#71717A]">{load.rated_power_kw.toFixed(2)} kW</td>
+                    <td className="py-2.5 px-3 font-bold text-[#FAFAFA]">
                       {load.current_power_kw.toFixed(2)} kW
                     </td>
-                    <td className="py-3 px-3">
+                    <td className="py-2.5 px-3">
                       {isCritical ? (
-                        <span className="text-[10px] text-slate-500 font-mono">0.000 (Protected)</span>
+                        <span className="text-[10px] text-[#52525B]">0.000 [IMMUNE]</span>
                       ) : (
-                        <div className="flex items-center space-x-1.5">
-                          <span className="font-mono font-semibold text-emerald-400">
-                            {load.lps_score !== undefined ? load.lps_score.toFixed(3) : '-'}
-                          </span>
-                        </div>
+                        <span className="font-semibold text-emerald-400">
+                          {load.lps_score !== undefined ? load.lps_score.toFixed(3) : '-'}
+                        </span>
                       )}
                     </td>
-                    <td className="py-3 px-3">
+                    <td className="py-2.5 px-3">
                       <div className="flex items-center space-x-1.5">
                         <span
-                          className={`h-2 w-2 rounded-full ${
+                          className={`h-1.5 w-1.5 rounded-full ${
                             load.actuator_status === 'ONLINE'
                               ? 'bg-emerald-400'
                               : load.actuator_status === 'UNCERTAIN'
@@ -167,45 +167,42 @@ export const LoadManagement: React.FC<LoadManagementProps> = ({ loads, onRefresh
                               : 'bg-rose-400'
                           }`}
                         />
-                        <span className="text-[11px]">{load.actuator_status}</span>
+                        <span className="text-[11px] text-[#FAFAFA]">{load.actuator_status}</span>
                         {load.is_curtailed && (
-                          <span className="text-[9px] bg-amber-500/10 text-amber-400 px-1.5 py-0.2 rounded">
-                            Curtailed -{(load.curtailment_factor * 100).toFixed(0)}%
+                          <span className="text-[9px] bg-amber-500/10 text-amber-400 px-1 py-0.2 rounded border border-amber-500/20">
+                            -{(load.curtailment_factor * 100).toFixed(0)}%
                           </span>
                         )}
                       </div>
                     </td>
-                    <td className="py-3 px-4 text-right">
+                    <td className="py-2.5 px-3 text-right">
                       {isCritical ? (
-                        <span className="inline-flex items-center space-x-1 text-[11px] text-slate-500 bg-slate-950 px-2 py-1 rounded border border-slate-800">
-                          <ShieldAlert className="h-3.5 w-3.5 text-rose-400" />
-                          <span>Protected: Locked ON</span>
+                        <span className="inline-flex items-center space-x-1 text-[10px] text-[#71717A] bg-[#121215] px-2 py-0.5 rounded border border-[#27272A]">
+                          <ShieldAlert className="h-3 w-3 text-rose-400" />
+                          <span>LOCKED ON</span>
                         </span>
                       ) : (
-                        <div className="inline-flex items-center space-x-1.5">
-                          {/* Modulate to 50% */}
+                        <div className="inline-flex items-center space-x-1">
                           {load.control_type === 'CONTINUOUS' && (
                             <button
                               disabled={isExecuting}
                               onClick={() => handleCommand(load, 'MODULATE', 0.5)}
-                              className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded border border-slate-700 text-[11px] font-medium transition"
+                              className="px-2 py-0.5 bg-[#18181B] hover:bg-[#27272A] text-[#FAFAFA] rounded border border-[#27272A] text-[10px] transition cursor-pointer"
                             >
                               50%
                             </button>
                           )}
-                          {/* Switch OFF / Curtail */}
                           <button
                             disabled={isExecuting}
                             onClick={() => handleCommand(load, 'CURTAIL', 0.0)}
-                            className="px-2 py-1 bg-rose-950/60 hover:bg-rose-900/80 text-rose-300 rounded border border-rose-800/50 text-[11px] font-medium transition"
+                            className="px-2 py-0.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 rounded border border-rose-500/30 text-[10px] transition cursor-pointer"
                           >
-                            Curtail
+                            SHED
                           </button>
-                          {/* Restore 100% */}
                           <button
                             disabled={isExecuting}
                             onClick={() => handleCommand(load, 'RESTORE', 1.0)}
-                            className="px-2 py-1 bg-emerald-950/60 hover:bg-emerald-900/80 text-emerald-300 rounded border border-emerald-800/50 text-[11px] font-medium transition"
+                            className="px-2 py-0.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 rounded border border-emerald-500/30 text-[10px] transition cursor-pointer"
                           >
                             100%
                           </button>
@@ -222,4 +219,3 @@ export const LoadManagement: React.FC<LoadManagementProps> = ({ loads, onRefresh
     </div>
   );
 };
-

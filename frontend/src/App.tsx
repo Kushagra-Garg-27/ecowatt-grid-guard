@@ -125,7 +125,7 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
+    <div className="min-h-screen bg-[#09090B] text-[#FAFAFA] flex flex-col font-sans">
       <Navbar
         currentTab={currentTab}
         setCurrentTab={setCurrentTab}
@@ -137,7 +137,7 @@ export const App: React.FC = () => {
         onTriggerOptimization={handleTriggerOptimization}
       />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-5 py-4">
         {currentTab === 'overview' && (
           <OverviewDashboard
             status={status}
@@ -173,11 +173,11 @@ export const App: React.FC = () => {
         )}
       </main>
 
-      <footer className="bg-slate-900 border-t border-slate-800/80 py-4 text-center text-xs text-slate-500">
+      <footer className="bg-[#09090B] border-t border-[#27272A] py-3 text-center text-xs text-[#71717A] font-mono">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>EcoWatt Grid Guard &copy; 2026 &bull; IoT-Based Dynamic Energy Optimization System</span>
-          <span className="font-mono text-[11px] text-slate-400">
-            CoAP over UDP (5683) &bull; MQTT (1883) &bull; FastAPI & React
+          <span>ECOWATT GRID GUARD &bull; CLOSED-LOOP IOT DEMAND OPTIMIZATION &bull; PATENT ARCHITECTURE</span>
+          <span className="text-[11px] text-[#A1A1AA] tabular-nums">
+            CoAP UDP:5683 &bull; MQTT QoS 1:1883 &bull; FastAPI 0.115 &bull; React 19
           </span>
         </div>
       </footer>

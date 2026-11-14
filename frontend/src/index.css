@@ -1,27 +1,61 @@
 @import "tailwindcss";
 
 @layer base {
+  :root {
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-mono: 'JetBrains Mono', 'Geist Mono', ui-monospace, SFMono-Regular, monospace;
+  }
+
   body {
-    @apply bg-slate-950 text-slate-100 antialiased font-sans;
+    background-color: #09090b;
+    color: #fafafa;
+    font-family: var(--font-sans);
     min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Universal monospace and tabular-nums rules */
+  .font-mono {
+    font-family: var(--font-mono);
+  }
+
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
   }
 }
 
-/* Custom scrollbars */
+/* 21st.dev Vercel / Builder OS Bento Utilities */
+.bento-surface {
+  background-color: #0f0f12;
+  border: 1px solid #27272a;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+}
+
+.bento-surface-hover {
+  transition: border-color 150ms ease, background-color 150ms ease;
+}
+
+.bento-surface-hover:hover {
+  border-color: #3f3f46;
+}
+
+/* Tactile Industrial Scrollbars */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #0f172a;
+  background: #09090b;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #334155;
-  border-radius: 3px;
+  background: #27272a;
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: #3f3f46;
 }
