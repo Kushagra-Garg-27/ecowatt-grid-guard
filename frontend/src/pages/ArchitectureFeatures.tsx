@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { InkOrbitFeatures } from '@/components/ui/ink-orbit-features';
-import { Sparkles, Radio, Zap, Shield } from 'lucide-react';
+import { MovingDotCard } from '@/components/ui/moving-dot-card';
+import { Sparkles, Radio, Zap, Shield, Cpu } from 'lucide-react';
 
 interface ArchitectureFeaturesProps {
   onNavigateTab: (tab: string) => void;
@@ -89,6 +90,44 @@ export const ArchitectureFeatures: React.FC<ArchitectureFeaturesProps> = ({ onNa
         ) : (
           <InkOrbitFeatures theme="dark" />
         )}
+      </div>
+
+      {/* Moving Dot Cards Showcase (21st.dev Component) */}
+      <div className="bento-surface rounded-lg p-4 border border-[#27272A] border-t-white/[0.08] space-y-3">
+        <div className="flex items-center justify-between border-b border-[#27272A] pb-2.5">
+          <div className="flex items-center space-x-2">
+            <Cpu className="h-4 w-4 text-cyan-400" />
+            <h3 className="font-mono text-xs font-semibold text-zinc-100 uppercase tracking-wider">
+              Telemetry Counters & Sci-Fi Radar Cards (Moving Dot Card)
+            </h3>
+          </div>
+          <span className="font-mono text-[10px] text-zinc-500">
+            @minhxthanh/moving-dot-card &bull; 21st.dev
+          </span>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-center gap-6 py-3">
+          <MovingDotCard
+            target={842000}
+            duration={2500}
+            label="Packets Ingested"
+            sublabel="CoAP UDP (5683) Stream"
+          />
+          <MovingDotCard
+            target={1820}
+            duration={2000}
+            label="Peak Power Cut"
+            sublabel="Demand Shaved vs 7.0 kW"
+            formatter={(v) => `${(v / 1000).toFixed(2)} kW`}
+          />
+          <MovingDotCard
+            target={100}
+            duration={1500}
+            label="Critical Immunity"
+            sublabel="0 Shedding Violations"
+            formatter={(v) => `${v}%`}
+          />
+        </div>
       </div>
 
       {/* Architectural Pillars Context Cards */}
