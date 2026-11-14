@@ -12,13 +12,19 @@
 
 | Metric | Measured Value | Standard / Invariant | Status |
 | :--- | :--- | :--- | :--- |
-| **Total Test Cases** | **56** | 56 automated test cases | **PASSED** |
+| **Total Test Cases** | **56** | 56 automated tests (inclusive of 3 Node-RED integration tests) | **PASSED** |
 | **Passed Cases** | **56** | Zero failures permissible | **100% PASS** |
 | **Failed Cases** | **0** | Clean run | **PASSED** |
 | **Warnings** | **1** | Starlette `TestClient` deprecation notice (harmless) | **RESOLVED** |
-| **Suite Duration** | **10.22 seconds** | Deterministic local execution | **PASSED** |
+| **Suite Duration** | **10.15 seconds** | Deterministic local execution | **PASSED** |
 | **Target Demand Invariant** | **Strictly $\le 6.80\text{ kW}$** | $P_{\text{target}} = P_{\text{threshold}} (7.00) - P_{\text{margin}} (0.20)$ | **ACHIEVED** |
 | **Critical Interruptions** | **0 (Zero)** | 100% life-safety load protection across all 10 scenarios | **GUARANTEED** |
+
+> [!NOTE]
+> **Test Scope & Boundary Disclaimers**:
+> 1. **Test Accounting**: The 56-test regression suite comprises 39 unit tests, 14 integration tests (which directly include the 3 live Node-RED runtime tests), and 3 system scenario acceptance tests ($39 + 14 + 3 = 56$). The Node-RED tests are integral to the 56 tests and are not double-counted.
+> 2. **Firmware Test Nature**: The 10 tests in `test_unit_firmware.py` are Python-based static source reviews and regex unit checks. Actual binary compilation (`arduino-cli compile`) was **not performed** because the cross-compiler toolchain is not installed on this host environment.
+> 3. **Hardware Boundary**: All tests were executed in a Software-in-the-Loop (SIL) environment using loopback network sockets. Physical hardware-in-the-loop (HIL) bench testing with physical microcontrollers, live 230V lines, and PZEM-004T transducers has **not** been performed.
 
 ---
 
@@ -34,8 +40,11 @@
 3. **Currency & Tariffs:**
    - All economic metrics, ToU tariffs, and cost savings are denominated strictly in **Indian Rupees (₹ / INR)**.
    - Default tariff structure: Off-peak ₹4.50/kWh, Normal ₹7.50/kWh, Peak ₹10.50/kWh, Surge ₹12.00/kWh.
-4. **CEA Carbon Accounting Invariant:**
-   - Baseline and optimized interval emissions are evaluated using identical, time-aligned emission factors ($C(t)$) from the Central Electricity Authority (CEA) Baseline Database Version 19.0 / 20.0 (716.0 gCO2/kWh national average).
+4. **Carbon Accounting Invariant & Dataset Transparency:**
+   - Baseline and optimized interval emissions are evaluated using identical, time-aligned emission factors ($C(t)$).
+   - The system implements 3 constant CEA methodologies using official annual baseline factors from the Central Electricity Authority (CEA) Baseline Database Version 19.0 / 20.0: `CEA_WEIGHTED_AVERAGE` ($716.0\text{ gCO}_2/\text{kWh}$), `CEA_COMBINED_MARGIN` ($785.0\text{ gCO}_2/\text{kWh}$), and `CEA_OPERATING_MARGIN` ($820.0\text{ gCO}_2/\text{kWh}$).
+   - The fourth mode, `MODELED_DIURNAL`, uses an algorithmic synthetic simulation model ($580.0\text{--}880.0\text{ gCO}_2/\text{kWh}$) approximating the diurnal solar duck curve.
+   - **No dynamic hourly CEA dataset is loaded**, as the CEA publishes annual aggregate baseline reports, not live or recorded hourly dispatch data.
 
 ---
 
@@ -79,6 +88,8 @@
 | `test_actuator_acknowledgement_fields` | Verifies execution ACK schema and fields | Includes `command_id`, status, actual power, timestamp | **PASSED** |
 
 ### 3.4 Firmware Integrity & Security Tests (`tests/test_unit_firmware.py` — 10 Tests)
+
+*(Note: These are Python-based static source inspections and unit validation checks. Actual ESP32 toolchain binary compilation and physical hardware bench testing were not performed).*
 
 | Test Case | Description | Assertion & Invariant | Result |
 | :--- | :--- | :--- | :--- |

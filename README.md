@@ -321,4 +321,5 @@ tests/test_unit_sustainability.py (7 passed)
 2. **Software-in-the-Loop Emulation**: Actuators and sensors operate with simulated physical electrical dynamics; physical microcontrollers (e.g. ESP32, Raspberry Pi) can be connected by pointing their CoAP/MQTT client to the gateway IP.
 3. **Simplified Thermal Inertia**: Room temperature dynamics utilize a lumped-capacitance 1-R-1-C thermal model rather than 3D finite-element CFD building simulations.
 4. **Single Grid Phase Modeling**: The system models a balanced single-phase equivalent grid bus ($230\text{V}$ line voltage); multi-phase unbalance estimation is not modeled.
+5. **Hardware & Toolchain Boundary**: All regression tests and demonstrations operate in a Software-in-the-Loop (SIL) configuration over loopback network sockets. Actual ESP32 binary toolchain compilation was not performed on this host environment, and physical microcontrollers have not undergone bench validation on live mains lines.
 
