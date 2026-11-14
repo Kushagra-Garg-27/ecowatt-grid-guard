@@ -1,34 +1,57 @@
 /*
  * ==============================================================================
- * EcoWatt Grid Guard — Physical ESP32 Actuator Node Firmware
+ * EcoWatt Grid Guard — Physical ESP32 Actuator Node Firmware (Reference Prototype)
  * ==============================================================================
  * Target Hardware: ESP32-WROOM-32D / ESP32-DevKitC
- * Protocol: MQTT 3.1.1 over TCP to EcoWatt MQTT Broker (port 1883)
+ * Protocol: MQTT 3.1.1 over TCP to EcoWatt MQTT Broker
  * Actuation Interfaces:
- *   - 4-Channel Active-Low Relay Module: GPIO25, GPIO26, GPIO27, GPIO14
+ *   - 4-Channel Active-Low Relay Module: GPIO25, GPIO26
  *   - Continuous PWM Modulation (Triac/MOSFET Dimmer): GPIO18 (LEDC Channel 0)
- *   - Hardware Critical-Load Protection Interlock Jumper: GPIO23 (Pullup)
+ *   - Hardware Critical-Load Protection Interlock Jumper: GPIO23 (Pullup, GND=Lock)
+ *
+ * NOTE: Reference prototype implementation pending physical field validation.
  * ==============================================================================
  */
 
 #include <WiFi.h>
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
+#include <time.h>
 
-// --- Network & MQTT Broker Configuration ---
-const char* WIFI_SSID     = "EcoWatt-IoT-Net";
-const char* WIFI_PASSWORD = "SmartGridPassword2026";
-const char* MQTT_BROKER   = "192.168.1.100";  // IP of Python Edge Gateway
-const uint16_t MQTT_PORT  = 1883;
+// --- Configuration Management ---
+#if __has_include("secrets.h")
+    #include "secrets.h"
+#elif __has_include("../secrets.h")
+    #include "../secrets.h"
+#else
+    #error "Missing secrets.h! Copy secrets.example.h to secrets.h and enter your Wi-Fi/Broker credentials."
+#endif
+
+// Compile-Time Configuration Sanity Checks
+#ifndef ECOWATT_WIFI_SSID
+    #error "ECOWATT_WIFI_SSID is not defined in secrets.h"
+#endif
+#ifndef ECOWATT_WIFI_PASSWORD
+    #error "ECOWATT_WIFI_PASSWORD is not defined in secrets.h"
+#endif
+#ifndef ECOWATT_MQTT_HOST
+    #error "ECOWATT_MQTT_HOST is not defined in secrets.h"
+#endif
+#ifndef ECOWATT_MQTT_PORT
+    #define ECOWATT_MQTT_PORT 1883
+#endif
+#ifndef ECOWATT_NTP_SERVER
+    #define ECOWATT_NTP_SERVER "pool.ntp.org"
+#endif
 
 // --- Node Metadata ---
 const char* CLIENT_ID = "esp32_actuator_cls_hvac";
-const char* LOAD_ID   = "cls_hvac"; // Target load controlled by this node
-const bool IS_CRITICAL_LOAD = false; // Set to true for server/emergency loads
+const char* LOAD_ID   = "cls_hvac";   // Target load controlled by this node
+const bool IS_CRITICAL_LOAD = false;  // Set true for life-safety / server loads
 
 // --- Hardware Pin Definitions ---
-#define RELAY_CH1_PIN       25  // Binary Main Switch
-#define RELAY_CH2_PIN       26  // Auxiliary Switch
+#define RELAY_CH1_PIN       25  // Binary Main Switch (Active-Low)
+#define RELAY_CH2_PIN       26  // Auxiliary Switch (Active-Low)
 #define PWM_DIMMER_PIN      18  // HVAC Compressor / Light Dimmer
 #define CRITICAL_SAFETY_PIN 23  // Hardware interlock jumper (GND = Strict Lock)
 #define STATUS_LED_PIN      2
@@ -38,31 +61,81 @@ const int PWM_FREQ       = 1000;
 const int PWM_CHANNEL    = 0;
 const int PWM_RESOLUTION = 8; // 8-bit (0 - 255)
 
+// --- Operating Parameters ---
+const float RATED_POWER_KW       = 1.40; // Nameplate rated capacity in kW
+const float MIN_OPERATING_LEVEL  = 0.45; // Minimum allowable modulation level (HVAC compressor safety)
+float currentOperatingLevel      = 1.0;  // 1.0 = 100% full power
+
 WiFiClient espClient;
 PubSubClient mqttClient(espClient);
 
-float currentOperatingLevel = 1.0; // 100% full baseline power
-float ratedPowerKw          = 1.40; // Rated capacity in kW
+// Pending ACK buffer for offline reconnect recovery
+struct PendingAck {
+    bool active;
+    char commandId[36];
+    char status[32];
+    float operatingLevel;
+    float estimatedPowerKw;
+    float latencyMs;
+    char timestamp[32];
+};
+const int MAX_PENDING_ACKS = 8;
+PendingAck pendingAckBuffer[MAX_PENDING_ACKS];
+
+void onMqttMessage(char* topic, byte* payload, unsigned int length);
+bool sendOrBufferAck(const char* cmdId, const char* status, float level, float powerKw, unsigned long latencyMs);
+void flushPendingAcks();
+String getISOTimestamp(bool& isSynced);
 
 void setup() {
     Serial.begin(115200);
-    pinMode(STATUS_LED_PIN, OUTPUT);
+
+    // =========================================================================
+    // CRITICAL HARDWARE SAFETY: SAFE RELAY INITIALIZATION
+    // =========================================================================
+    // Active-Low Relays MUST be driven HIGH *before* setting as OUTPUT to avoid
+    // an electrical startup glitch that would unintentionally energize the load!
+    digitalWrite(RELAY_CH1_PIN, HIGH); // De-energized / Open
+    digitalWrite(RELAY_CH2_PIN, HIGH);
     pinMode(RELAY_CH1_PIN, OUTPUT);
     pinMode(RELAY_CH2_PIN, OUTPUT);
-    pinMode(CRITICAL_SAFETY_PIN, INPUT_PULLUP);
 
-    // Initial state: Relay energized (Normal closed, power ON)
-    digitalWrite(RELAY_CH1_PIN, LOW); // Active Low
-    digitalWrite(RELAY_CH2_PIN, LOW);
+    pinMode(STATUS_LED_PIN, OUTPUT);
+    digitalWrite(STATUS_LED_PIN, LOW);
+    pinMode(CRITICAL_SAFETY_PIN, INPUT_PULLUP); // Jumper to GND engages hard lock
 
-    // Setup PWM channel
+    // Initialize PWM channel with safe 0 duty cycle at boot
     ledcSetup(PWM_CHANNEL, PWM_FREQ, PWM_RESOLUTION);
     ledcAttachPin(PWM_DIMMER_PIN, PWM_CHANNEL);
-    ledcWrite(PWM_CHANNEL, 255); // 100% duty cycle
+    ledcWrite(PWM_CHANNEL, 0);
+
+    // Initialize pending ACK buffer
+    for (int i = 0; i < MAX_PENDING_ACKS; i++) pendingAckBuffer[i].active = false;
+
+    Serial.println("\n=======================================================");
+    Serial.println(" EcoWatt Grid Guard — ESP32 Actuator Node (Prototype) ");
+    Serial.println("=======================================================");
+
+    // Runtime Configuration Validation
+    if (strcmp(ECOWATT_WIFI_SSID, "YOUR_WIFI_SSID") == 0 || strlen(ECOWATT_WIFI_SSID) == 0) {
+        Serial.println("\n[FATAL ERROR] Wi-Fi SSID is unconfigured! Edit secrets.h and reflash.");
+        while (true) {
+            digitalWrite(STATUS_LED_PIN, HIGH);
+            delay(100);
+            digitalWrite(STATUS_LED_PIN, LOW);
+            delay(100);
+        }
+    }
 
     connectWiFi();
-    mqttClient.setServer(MQTT_BROKER, MQTT_PORT);
+
+    // NTP Time Synchronization
+    configTime(0, 0, ECOWATT_NTP_SERVER, "time.google.com");
+    Serial.println("[NTP] Synchronizing UTC clock for accurate ACK timestamps...");
+
+    mqttClient.setServer(ECOWATT_MQTT_HOST, ECOWATT_MQTT_PORT);
     mqttClient.setCallback(onMqttMessage);
+    mqttClient.setBufferSize(512);
 }
 
 void loop() {
@@ -71,6 +144,8 @@ void loop() {
     }
     if (!mqttClient.connected()) {
         connectMQTT();
+    } else {
+        flushPendingAcks();
     }
     mqttClient.loop();
     delay(10);
@@ -78,31 +153,64 @@ void loop() {
 
 void connectWiFi() {
     digitalWrite(STATUS_LED_PIN, LOW);
-    Serial.printf("[WiFi] Connecting to %s", WIFI_SSID);
+    Serial.printf("[WiFi] Connecting to %s", ECOWATT_WIFI_SSID);
     WiFi.mode(WIFI_STA);
-    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-    while (WiFi.status() != WL_CONNECTED) {
-        delay(500);
+    WiFi.begin(ECOWATT_WIFI_SSID, ECOWATT_WIFI_PASSWORD);
+
+    int attempts = 0;
+    while (WiFi.status() != WL_CONNECTED && attempts < 25) {
+        delay(400);
         Serial.print(".");
+        attempts++;
     }
-    Serial.printf("\n[WiFi] Connected! IP: %s\n", WiFi.localIP().toString().c_str());
-    digitalWrite(STATUS_LED_PIN, HIGH);
+
+    if (WiFi.status() == WL_CONNECTED) {
+        Serial.printf("\n[WiFi] Connected! IP: %s\n", WiFi.localIP().toString().c_str());
+        digitalWrite(STATUS_LED_PIN, HIGH);
+    } else {
+        Serial.println("\n[WiFi] Connection timeout. Retrying later...");
+    }
 }
 
 void connectMQTT() {
-    while (!mqttClient.connected()) {
-        Serial.printf("[MQTT] Connecting to broker %s:%d...", MQTT_BROKER, MQTT_PORT);
-        if (mqttClient.connect(CLIENT_ID)) {
-            Serial.println(" Connected!");
-            // Subscribe to this load's command topic
-            char subTopic[64];
-            snprintf(subTopic, sizeof(subTopic), "ecowatt/load/%s/command", LOAD_ID);
-            mqttClient.subscribe(subTopic);
-            Serial.printf("[MQTT] Subscribed to topic: %s\n", subTopic);
-        } else {
-            Serial.printf(" Failed, rc=%d. Retrying in 3 seconds...\n", mqttClient.state());
-            delay(3000);
-        }
+    if (WiFi.status() != WL_CONNECTED) return;
+
+    Serial.printf("[MQTT] Connecting to broker %s:%d...", ECOWATT_MQTT_HOST, ECOWATT_MQTT_PORT);
+    bool connected = false;
+
+    #if defined(ECOWATT_MQTT_USER) && (strlen(ECOWATT_MQTT_USER) > 0)
+        connected = mqttClient.connect(CLIENT_ID, ECOWATT_MQTT_USER, ECOWATT_MQTT_PASS);
+    #else
+        connected = mqttClient.connect(CLIENT_ID);
+    #endif
+
+    if (connected) {
+        Serial.println(" Connected!");
+        char subTopic[64];
+        snprintf(subTopic, sizeof(subTopic), "ecowatt/load/%s/command", LOAD_ID);
+        mqttClient.subscribe(subTopic);
+        Serial.printf("[MQTT] Subscribed to command topic: %s\n", subTopic);
+        flushPendingAcks();
+    } else {
+        Serial.printf(" Connection failed (rc=%d). Will retry in loop.\n", mqttClient.state());
+    }
+}
+
+String getISOTimestamp(bool& isSynced) {
+    time_t nowSec = time(nullptr);
+    if (nowSec > 1000000000) {
+        isSynced = true;
+        struct tm timeinfo;
+        gmtime_r(&nowSec, &timeinfo);
+        char buf[32];
+        strftime(buf, sizeof(buf), "%Y-%m-%dT%H:%M:%SZ", &timeinfo);
+        return String(buf);
+    } else {
+        isSynced = false;
+        unsigned long sec = millis() / 1000;
+        char buf[32];
+        snprintf(buf, sizeof(buf), "1970-01-01T%02lu:%02lu:%02luZ", (sec / 3600) % 24, (sec / 60) % 60, sec % 60);
+        return String(buf);
     }
 }
 
@@ -110,65 +218,173 @@ void onMqttMessage(char* topic, byte* payload, unsigned int length) {
     unsigned long startTime = millis();
     StaticJsonDocument<512> doc;
     DeserializationError err = deserializeJson(doc, payload, length);
+
     if (err) {
-        Serial.println("[MQTT] JSON parse failed on command payload.");
+        Serial.printf("[MQTT ERROR] JSON parse failed: %s\n", err.c_str());
+        sendOrBufferAck("invalid_json", "REJECTED_INVALID_PAYLOAD", currentOperatingLevel, RATED_POWER_KW * currentOperatingLevel, millis() - startTime);
         return;
     }
 
-    const char* commandId = doc["command_id"] | "unknown_cmd";
-    const char* action    = doc["action"] | "MODULATE";
-    float requestedLevel  = doc["requested_level"] | 1.0;
+    // --- Validation 1: Required Command ID ---
+    if (!doc.containsKey("command_id") || !doc["command_id"].is<const char*>() || strlen(doc["command_id"]) == 0) {
+        Serial.println("[Validation Error] Missing or invalid 'command_id' field.");
+        sendOrBufferAck("missing_id", "REJECTED_INVALID_PAYLOAD", currentOperatingLevel, RATED_POWER_KW * currentOperatingLevel, millis() - startTime);
+        return;
+    }
+    const char* commandId = doc["command_id"];
 
-    Serial.printf("[Actuator] Received cmd %s: action=%s, requested_level=%.2f\n", commandId, action, requestedLevel);
+    // --- Validation 2: Load ID Verification (if specified in payload) ---
+    if (doc.containsKey("load_id")) {
+        const char* targetLoad = doc["load_id"];
+        if (strcmp(targetLoad, LOAD_ID) != 0) {
+            Serial.printf("[Validation Error] Command targeted load '%s', but this node controls '%s'\n", targetLoad, LOAD_ID);
+            sendOrBufferAck(commandId, "REJECTED_LOAD_MISMATCH", currentOperatingLevel, RATED_POWER_KW * currentOperatingLevel, millis() - startTime);
+            return;
+        }
+    }
 
-    // 1. Hardware Interlock & Critical Protection Check
+    // --- Validation 3: Action Type ---
+    if (!doc.containsKey("action") || !doc["action"].is<const char*>()) {
+        sendOrBufferAck(commandId, "REJECTED_INVALID_PAYLOAD", currentOperatingLevel, RATED_POWER_KW * currentOperatingLevel, millis() - startTime);
+        return;
+    }
+    const char* action = doc["action"];
+    if (strcmp(action, "CURTAIL") != 0 && strcmp(action, "MODULATE") != 0 && strcmp(action, "RESTORE") != 0) {
+        Serial.printf("[Validation Error] Unsupported action '%s'\n", action);
+        sendOrBufferAck(commandId, "REJECTED_UNSUPPORTED_ACTION", currentOperatingLevel, RATED_POWER_KW * currentOperatingLevel, millis() - startTime);
+        return;
+    }
+
+    // --- Validation 4: Operating Level Range ---
+    if (doc.containsKey("requested_level")) {
+        if (!doc["requested_level"].is<float>() && !doc["requested_level"].is<int>()) {
+            sendOrBufferAck(commandId, "REJECTED_INVALID_OPERATING_LEVEL", currentOperatingLevel, RATED_POWER_KW * currentOperatingLevel, millis() - startTime);
+            return;
+        }
+        float req = doc["requested_level"].as<float>();
+        if (req < 0.0 || req > 1.0 || isnan(req)) {
+            Serial.printf("[Validation Error] Requested level %.2f is out of bounds [0.0, 1.0]\n", req);
+            sendOrBufferAck(commandId, "REJECTED_INVALID_OPERATING_LEVEL", currentOperatingLevel, RATED_POWER_KW * currentOperatingLevel, millis() - startTime);
+            return;
+        }
+    }
+
+    float requestedLevel = doc["requested_level"] | (strcmp(action, "RESTORE") == 0 ? 1.0f : (strcmp(action, "CURTAIL") == 0 ? 0.0f : currentOperatingLevel));
+
+    // --- Safety Check 5: Hardware Safety Interlock & Critical Load Protection ---
     bool hardwareLocked = (digitalRead(CRITICAL_SAFETY_PIN) == LOW);
     if (IS_CRITICAL_LOAD || hardwareLocked) {
-        Serial.println("[Safety] Curtailment REJECTED: Critical load hardware interlock engaged!");
-        sendAcknowledgement(commandId, "REJECTED_CRITICAL_PROTECTED", currentOperatingLevel, ratedPowerKw, millis() - startTime);
-        return;
+        if (strcmp(action, "CURTAIL") == 0 || requestedLevel < 1.0) {
+            Serial.println("[SAFETY INTERLOCK] Command REJECTED: Critical load hardware protection is active!");
+            sendOrBufferAck(commandId, "REJECTED_CRITICAL_PROTECTED", currentOperatingLevel, RATED_POWER_KW * currentOperatingLevel, millis() - startTime);
+            return;
+        }
     }
 
-    // 2. Physical Actuation
-    // Clamp within physical minimum operating level (0.45 for HVAC compressor)
-    float clampedLevel = max(0.45f, min(1.0f, requestedLevel));
+    // --- Physical Actuation Execution ---
+    float targetLevel = requestedLevel;
     if (strcmp(action, "CURTAIL") == 0 && requestedLevel == 0.0) {
-        // Binary cut-off
-        clampedLevel = 0.0;
-        digitalWrite(RELAY_CH1_PIN, HIGH); // De-energize relay
+        targetLevel = 0.0;
+        digitalWrite(RELAY_CH1_PIN, HIGH); // De-energize relay (disconnect AC load)
         ledcWrite(PWM_CHANNEL, 0);
     } else {
-        // Continuous PWM modulation
-        digitalWrite(RELAY_CH1_PIN, LOW); // Keep relay energized
-        int pwmDuty = (int)(clampedLevel * 255.0);
+        // Enforce physical minimum operating level (compressor protection)
+        targetLevel = max(MIN_OPERATING_LEVEL, min(1.0f, requestedLevel));
+        digitalWrite(RELAY_CH1_PIN, LOW); // Energize relay (active-low)
+        int pwmDuty = (int)(targetLevel * 255.0);
         ledcWrite(PWM_CHANNEL, pwmDuty);
     }
 
-    currentOperatingLevel = clampedLevel;
-    float actualPowerKw = ratedPowerKw * currentOperatingLevel;
+    currentOperatingLevel = targetLevel;
+    // NOTE: This is an ESTIMATED power calculation from nameplate rating and modulation duty,
+    // not a direct current transformer sensor reading!
+    float estimatedPowerKw = round((RATED_POWER_KW * currentOperatingLevel) * 1000.0) / 1000.0;
     unsigned long latencyMs = millis() - startTime;
 
-    Serial.printf("[Actuator] Actuated to level %.2f (Power: %.2f kW) in %lu ms\n", currentOperatingLevel, actualPowerKw, latencyMs);
+    Serial.printf("[Actuator] Executed %s: Level=%.2f, EstPower=%.3f kW in %lu ms\n", commandId, currentOperatingLevel, estimatedPowerKw, latencyMs);
 
-    // 3. Publish Execution Acknowledgement over MQTT
-    sendAcknowledgement(commandId, "SUCCESS", currentOperatingLevel, actualPowerKw, latencyMs);
+    // --- Acknowledgement Dissemination ---
+    sendOrBufferAck(commandId, "SUCCESS", currentOperatingLevel, estimatedPowerKw, latencyMs);
 }
 
-void sendAcknowledgement(const char* cmdId, const char* status, float level, float powerKw, unsigned long latencyMs) {
+bool sendOrBufferAck(const char* cmdId, const char* status, float level, float powerKw, unsigned long latencyMs) {
     char ackTopic[64];
     snprintf(ackTopic, sizeof(ackTopic), "ecowatt/load/%s/ack", LOAD_ID);
 
-    StaticJsonDocument<256> ackDoc;
-    ackDoc["command_id"]      = cmdId;
-    ackDoc["load_id"]         = LOAD_ID;
-    ackDoc["status"]          = status;
-    ackDoc["actual_power_kw"] = round(powerKw * 1000.0) / 1000.0;
-    ackDoc["operating_level"] = round(level * 100.0) / 100.0;
-    ackDoc["latency_ms"]      = (float)latencyMs;
-    ackDoc["timestamp"]       = "2026-11-14T12:00:00Z";
+    bool isSynced = false;
+    String timestampStr = getISOTimestamp(isSynced);
 
-    char buffer[256];
+    StaticJsonDocument<384> ackDoc;
+    ackDoc["command_id"]         = cmdId;
+    ackDoc["load_id"]            = LOAD_ID;
+    ackDoc["status"]             = status;
+    ackDoc["operating_level"]    = round(level * 100.0) / 100.0;
+    // Clearly distinguish estimated power from physical transducer measurement:
+    ackDoc["estimated_power_kw"] = powerKw;
+    ackDoc["actual_power_kw"]    = powerKw; // Retained for backwards schema compatibility
+    ackDoc["is_measured_power"]  = false;   // Explicitly flagged as calculated/estimated
+    ackDoc["latency_ms"]         = (float)latencyMs;
+    ackDoc["timestamp"]          = timestampStr;
+    ackDoc["time_source"]        = isSynced ? "NTP_UTC" : "UPTIME_FALLBACK";
+
+    char buffer[384];
     size_t len = serializeJson(ackDoc, buffer, sizeof(buffer));
-    mqttClient.publish(ackTopic, buffer, len);
-    Serial.printf("[MQTT] Disseminated ACK to %s: status=%s\n", ackTopic, status);
+
+    bool published = false;
+    if (mqttClient.connected()) {
+        published = mqttClient.publish(ackTopic, buffer, len);
+    }
+
+    if (published) {
+        Serial.printf("[MQTT ACK] Published to %s (cmd=%s, status=%s)\n", ackTopic, cmdId, status);
+        return true;
+    } else {
+        Serial.printf("[MQTT WARN] Failed to publish ACK. Buffering for reconnect (cmd=%s)\n", cmdId);
+        // Store in pending buffer
+        for (int i = 0; i < MAX_PENDING_ACKS; i++) {
+            if (!pendingAckBuffer[i].active) {
+                pendingAckBuffer[i].active = true;
+                strncpy(pendingAckBuffer[i].commandId, cmdId, sizeof(pendingAckBuffer[i].commandId) - 1);
+                strncpy(pendingAckBuffer[i].status, status, sizeof(pendingAckBuffer[i].status) - 1);
+                pendingAckBuffer[i].operatingLevel = level;
+                pendingAckBuffer[i].estimatedPowerKw = powerKw;
+                pendingAckBuffer[i].latencyMs = (float)latencyMs;
+                strncpy(pendingAckBuffer[i].timestamp, timestampStr.c_str(), sizeof(pendingAckBuffer[i].timestamp) - 1);
+                break;
+            }
+        }
+        return false;
+    }
+}
+
+void flushPendingAcks() {
+    if (!mqttClient.connected()) return;
+
+    char ackTopic[64];
+    snprintf(ackTopic, sizeof(ackTopic), "ecowatt/load/%s/ack", LOAD_ID);
+
+    for (int i = 0; i < MAX_PENDING_ACKS; i++) {
+        if (pendingAckBuffer[i].active) {
+            StaticJsonDocument<384> ackDoc;
+            ackDoc["command_id"]         = pendingAckBuffer[i].commandId;
+            ackDoc["load_id"]            = LOAD_ID;
+            ackDoc["status"]             = pendingAckBuffer[i].status;
+            ackDoc["operating_level"]    = pendingAckBuffer[i].operatingLevel;
+            ackDoc["estimated_power_kw"] = pendingAckBuffer[i].estimatedPowerKw;
+            ackDoc["actual_power_kw"]    = pendingAckBuffer[i].estimatedPowerKw;
+            ackDoc["is_measured_power"]  = false;
+            ackDoc["latency_ms"]         = pendingAckBuffer[i].latencyMs;
+            ackDoc["timestamp"]          = pendingAckBuffer[i].timestamp;
+            ackDoc["retransmitted"]      = true;
+
+            char buffer[384];
+            size_t len = serializeJson(ackDoc, buffer, sizeof(buffer));
+            if (mqttClient.publish(ackTopic, buffer, len)) {
+                Serial.printf("[MQTT FLUSH] Retransmitted buffered ACK for cmd %s\n", pendingAckBuffer[i].commandId);
+                pendingAckBuffer[i].active = false;
+            } else {
+                break; // Still unable to publish, retry on next loop
+            }
+        }
+    }
 }

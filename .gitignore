@@ -16,10 +16,13 @@ build/
 *.sqlite3
 !data/ecowatt.db.example
 
-# Node / Frontend
+# Node / Frontend / Node-RED
 node_modules/
 frontend/dist/
 frontend/node_modules/
+nodered/node_modules/
+nodered/.config*
+nodered/package*.json
 .npm
 *.tsbuildinfo
 
@@ -34,3 +37,8 @@ Thumbs.db
 .coverage
 htmlcov/
 
+# Secrets & Credentials (NEVER COMMIT)
+secrets.h
+*/secrets.h
+**/secrets.h
+.env

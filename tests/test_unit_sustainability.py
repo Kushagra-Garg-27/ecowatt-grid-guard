@@ -2,13 +2,14 @@
 Unit Tests for Sustainability Analytics and Metric Calculations
 Section 18 Requirements:
   - Energy, cost, and carbon accounting
-  - Verification of CEA India grid carbon intensity bounds
+  - Verification of CEA India grid carbon intensity (Modeled Diurnal vs Constant CEA mode)
   - Threshold exceedance duration
 """
 import pytest
 import numpy as np
 from backend.app.analytics.sustainability import SustainabilityCalculator
 from backend.app.simulation.profiles import generate_grid_carbon_intensity
+from backend.app.simulation.engine import simulation_engine
 
 
 def test_energy_cost_carbon_calculations():
@@ -88,9 +89,9 @@ def test_threshold_exceedance_duration():
     assert summary.threshold_exceedance_minutes_optimized == 0
 
 
-def test_cea_carbon_intensity_profile_bounds():
-    """Verify that modeled carbon intensity strictly conforms to official CEA India baseline ranges."""
-    carbon = generate_grid_carbon_intensity(96)
+def test_modeled_diurnal_carbon_intensity_bounds():
+    """Verify that modeled diurnal carbon curve reflects expected physical dispatch dynamics."""
+    carbon = generate_grid_carbon_intensity(96, mode="MODELED_DIURNAL")
     assert len(carbon) == 96
 
     # 1. Bounds check: all values strictly between 550 and 920 gCO2/kWh
@@ -107,3 +108,57 @@ def test_cea_carbon_intensity_profile_bounds():
 
     # 4. Diurnal differential: evening peak must be significantly higher than solar midday
     assert np.mean(evening_carbon) - np.mean(midday_carbon) > 250.0
+
+
+def test_constant_cea_carbon_mode():
+    """Verify constant CEA annual baseline factor mode."""
+    # Official CEA FY 2022-23 gross generation factor: 716.0 gCO2/kWh
+    c_gross = generate_grid_carbon_intensity(96, mode="CONSTANT_CEA", constant_factor_g_per_kwh=716.0)
+    assert len(c_gross) == 96
+    assert np.all(c_gross == 716.0)
+
+    # Official CEA Combined Margin factor: 785.0 gCO2/kWh
+    c_cm = generate_grid_carbon_intensity(96, mode="CONSTANT_CEA", constant_factor_g_per_kwh=785.0)
+    assert np.all(c_cm == 785.0)
+
+
+def test_constant_vs_modeled_carbon_calculations():
+    """Verify that sustainability calculations work consistently under both carbon accounting modes."""
+    base_pwr = np.full(96, 7.0)
+    opt_pwr = np.full(96, 6.0)  # 1 kW net continuous reduction = 24 kWh saved
+    tariffs = np.full(96, 7.50)
+
+    # Mode 1: Constant CEA (716 gCO2/kWh)
+    carbon_const = generate_grid_carbon_intensity(96, mode="CONSTANT_CEA", constant_factor_g_per_kwh=716.0)
+    summary_const = SustainabilityCalculator.compute_daily_summary(
+        scenario_id="const_cea_test",
+        scenario_name="Constant CEA Test",
+        baseline_power_kw=base_pwr,
+        optimized_power_kw=opt_pwr,
+        tariffs=tariffs,
+        carbon_intensity=carbon_const,
+        shifted_energy_kwh=0.0,
+        control_operations_count=1,
+        actuator_failures_count=0,
+        critical_interruptions_count=0,
+    )
+    # 24 kWh saved * 716 g/kWh = 17184 g = 17.18 kg
+    assert abs(summary_const.carbon_avoided_kg - 17.18) < 1e-2
+
+    # Mode 2: Modeled Diurnal
+    carbon_diurnal = generate_grid_carbon_intensity(96, mode="MODELED_DIURNAL")
+    summary_diurnal = SustainabilityCalculator.compute_daily_summary(
+        scenario_id="diurnal_test",
+        scenario_name="Diurnal Test",
+        baseline_power_kw=base_pwr,
+        optimized_power_kw=opt_pwr,
+        tariffs=tariffs,
+        carbon_intensity=carbon_diurnal,
+        shifted_energy_kwh=0.0,
+        control_operations_count=1,
+        actuator_failures_count=0,
+        critical_interruptions_count=0,
+    )
+    assert summary_diurnal.carbon_avoided_kg > 0.0
+    # Both calculations must be positive and within reasonable physical bounds (13-22 kg for 24 kWh)
+    assert 13.0 <= summary_diurnal.carbon_avoided_kg <= 22.0

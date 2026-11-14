@@ -66,7 +66,11 @@ class SimulationEngine:
 
         # 1. Base Profiles
         tariffs = generate_time_of_use_tariff(self.steps)
-        carbon_intensity = generate_grid_carbon_intensity(self.steps)
+        carbon_intensity = generate_grid_carbon_intensity(
+            self.steps,
+            mode=cfg.get("carbon_mode", settings.CARBON_ACCOUNTING_MODE),
+            constant_factor_g_per_kwh=cfg.get("carbon_constant_factor", settings.CEA_ANNUAL_GRID_FACTOR_G_PER_KWH),
+        )
         zone_occupancy = generate_zone_occupancy_profiles(self.steps, seed=self.seed)
 
         # Scale occupancy according to scenario

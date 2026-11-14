@@ -115,3 +115,57 @@ def test_progressive_restoration_safety_margin_against_actual_measured_demand():
     for r in restored:
         assert r["post_restoration_power_kw"] <= (safety_ceiling + 1e-4)
         assert r["status"] == "SUCCESS"
+
+
+def test_actuator_command_validation_rejections():
+    """
+    Verify actuator input validation rejects malformed payloads,
+    unsupported actions, and out-of-range operating levels.
+    """
+    mgr = ActuatorManager()
+    act = mgr.get_load_actuator("cls_hvac")
+    assert act is not None
+
+    # 1. Missing or empty command ID
+    ack_empty_cmd = act.execute_command(action="MODULATE", requested_level=0.5, command_id="")
+    assert ack_empty_cmd["status"] == "REJECTED_INVALID_PAYLOAD"
+    assert "Command ID" in ack_empty_cmd["error_details"]
+    assert ack_empty_cmd["is_measured_power"] is False
+
+    ack_none_cmd = act.execute_command(action="MODULATE", requested_level=0.5, command_id=None)
+    assert ack_none_cmd["status"] == "REJECTED_INVALID_PAYLOAD"
+
+    # 2. Unsupported action
+    ack_bad_action = act.execute_command(action="OVERCLOCK", requested_level=0.5, command_id="cmd_bad_act")
+    assert ack_bad_action["status"] == "REJECTED_UNSUPPORTED_ACTION"
+    assert "OVERCLOCK" in ack_bad_action["error_details"]
+    assert ack_bad_action["is_measured_power"] is False
+
+    # 3. Out-of-range operating level
+    ack_neg_level = act.execute_command(action="MODULATE", requested_level=-0.1, command_id="cmd_neg")
+    assert ack_neg_level["status"] == "REJECTED_INVALID_OPERATING_LEVEL"
+    assert ack_neg_level["is_measured_power"] is False
+
+    ack_high_level = act.execute_command(action="MODULATE", requested_level=1.5, command_id="cmd_high")
+    assert ack_high_level["status"] == "REJECTED_INVALID_OPERATING_LEVEL"
+    assert ack_high_level["is_measured_power"] is False
+
+
+def test_actuator_acknowledgement_fields():
+    """
+    Verify that an accepted command returns all required telemetry fields,
+    including command_id, load_id, timestamp, estimated_power_kw, and is_measured_power.
+    """
+    mgr = ActuatorManager()
+    act = mgr.get_load_actuator("lab_sockets_aux")
+    assert act is not None
+
+    ack = act.execute_command(action="CURTAIL", requested_level=0.0, command_id="cmd_valid_ack_test")
+    assert ack["status"] == "SUCCESS"
+    assert ack["command_id"] == "cmd_valid_ack_test"
+    assert ack["load_id"] == "lab_sockets_aux"
+    assert "timestamp" in ack
+    assert "estimated_power_kw" in ack
+    assert ack["is_measured_power"] is False
+    assert ack["actual_power_kw"] == 0.0
+

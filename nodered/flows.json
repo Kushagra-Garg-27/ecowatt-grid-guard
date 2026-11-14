@@ -100,7 +100,7 @@
     "libs": [],
     "x": 440,
     "y": 240,
-    "wires": [["debug_audit_violation"], ["debug_audited_command"]]
+    "wires": [["debug_audit_violation", "pub_alerts"], ["debug_audited_command"]]
   },
   {
     "id": "sub_acks",

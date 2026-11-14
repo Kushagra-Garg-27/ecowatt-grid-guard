@@ -33,45 +33,51 @@ def generate_time_of_use_tariff(steps: int = 96) -> np.ndarray:
     return tariffs
 
 
-def generate_grid_carbon_intensity(steps: int = 96) -> np.ndarray:
+def generate_grid_carbon_intensity(
+    steps: int = 96,
+    mode: str = "MODELED_DIURNAL",
+    constant_factor_g_per_kwh: float = 716.0,
+) -> np.ndarray:
     """
-    Time-Varying Grid Carbon Intensity (gCO2/kWh) Calibrated to Indian CEA National Baseline:
-    
-    Source Reference:
-      Central Electricity Authority (CEA), Ministry of Power, Government of India:
-      "CO2 Baseline Database for the Indian Power Sector", User Guide Version 19.0 (Nov 2023)
-      and Version 20.0 (Oct 2024), covering the Indian National Synchronous Grid (NEWNE + SR).
+    Grid Carbon Intensity (gCO2/kWh) for Environmental Impact Accounting.
 
-    Baseline Empirical Factors:
-      - Operating Margin (OM) Peaker Emission Factor: ~0.880 to 0.920 kg CO2/kWh (~880 gCO2/kWh)
-      - Combined Margin (CM) Grid Weighted Average: ~0.790 to 0.812 kg CO2/kWh (~800 gCO2/kWh)
-      - Build Margin (BM) Renewable/Low-Carbon Fraction: ~0.580 to 0.650 kg CO2/kWh (~580 gCO2/kWh)
+    Supports two operating modes:
+    1. 'MODELED_DIURNAL' (Default Simulation Assumption):
+       A modeled synthetic diurnal profile reflecting operational dispatch dynamics:
+       - Midday Solar Depression (11:00 - 15:00 IST): Renewable generation reduces thermal coal fraction,
+         modeled at ~580.0 ± 25.0 gCO2/kWh.
+       - Evening Peak Peaker Surge (17:00 - 21:00 IST): Solar generation drops to zero during peak demand,
+         modeled with high thermal coal/gas peaker marginal dispatch at ~880.0 ± 35.0 gCO2/kWh.
+       - Morning Ramp (07:00 - 10:00 IST): Modeled at ~760.0 ± 20.0 gCO2/kWh.
+       - Overnight Baseload (22:00 - 06:00 IST): Modeled at ~710.0 ± 15.0 gCO2/kWh.
+       NOTE: This specific hourly curve is a simulation model assumption approximating diurnal grid
+       dispatch, not a directly measured real-time telemetry feed published by CEA.
 
-    Diurnal Dynamic Dispatch Profile:
-      - Solar Midday Depression (11:00 - 15:00 IST): High solar penetration (~60-75 GW nationally)
-        displaces thermal coal marginal generation, depressing intensity to ~580.0 ± 25.0 gCO2/kWh.
-      - Evening Peak Peaker Surge (17:00 - 21:00 IST): Solar generation drops to zero while national
-        demand peaks (>240 GW). Subcritical/supercritical coal units and open-cycle gas peakers ramp to
-        maximum dispatch, driving marginal carbon intensity to ~880.0 ± 35.0 gCO2/kWh.
-      - Morning Ramp (07:00 - 10:00 IST): Commercial and industrial morning ramp-up before peak solar;
-        grid intensity averages ~760.0 ± 20.0 gCO2/kWh.
-      - Overnight Baseload (22:00 - 06:00 IST): Off-peak baseload coal generation supplemented by
-        nocturnal wind power; grid intensity stabilizes at ~710.0 ± 15.0 gCO2/kWh.
+    2. 'CONSTANT_CEA' (Official Annual Benchmark):
+       Employs a static grid emission factor derived from the official Central Electricity Authority (CEA)
+       "CO2 Baseline Database for the Indian Power Sector" (Version 19.0, Nov 2023 / Version 20.0, Oct 2024):
+       - National Grid Weighted Average Gross Factor (FY 2022-23): 716.0 gCO2/kWh (0.716 kg CO2/kWh)
+       - National Grid Combined Margin (CM): 785.0 gCO2/kWh (0.785 kg CO2/kWh)
+       - National Grid Operating Margin (OM): 820.0 gCO2/kWh (0.820 kg CO2/kWh)
     """
+    if mode == "CONSTANT_CEA":
+        return np.full(steps, round(float(constant_factor_g_per_kwh), 1))
+
+    # Default: Modeled diurnal simulation profile
     carbon = np.zeros(steps)
     for s in range(steps):
         hour = (s * 15) / 60.0
         if 11.0 <= hour < 15.0:
-            # Solar peak depression
+            # Solar peak depression assumption
             base = 580.0 + 25.0 * np.sin((hour - 11.0) / 4.0 * np.pi)
         elif 17.0 <= hour < 21.0:
-            # Evening peaker thermal surge
+            # Evening peaker thermal surge assumption
             base = 880.0 + 35.0 * np.sin((hour - 17.0) / 4.0 * np.pi)
         elif 7.0 <= hour < 10.0:
-            # Morning ramp
+            # Morning ramp assumption
             base = 760.0 + 20.0 * np.sin((hour - 7.0) / 3.0 * np.pi)
         else:
-            # Overnight baseline
+            # Overnight baseline assumption
             base = 710.0 + 15.0 * np.cos(hour / 24.0 * 2 * np.pi)
         carbon[s] = round(base, 1)
     return carbon

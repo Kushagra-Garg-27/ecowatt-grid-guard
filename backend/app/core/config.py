@@ -58,6 +58,12 @@ class Settings(BaseSettings):
     CURRENCY_SYMBOL: str = "₹"
     CURRENCY_CODE: str = "INR"
 
+    # Carbon Accounting Parameters
+    CARBON_ACCOUNTING_MODE: str = "MODELED_DIURNAL"  # "MODELED_DIURNAL" or "CONSTANT_CEA"
+    CEA_ANNUAL_GRID_FACTOR_G_PER_KWH: float = 716.0  # CEA India National Grid Baseline FY 2022-23 gross generation average
+    CEA_COMBINED_MARGIN_G_PER_KWH: float = 785.0     # CEA India Combined Margin (CM) factor
+    CEA_OPERATING_MARGIN_G_PER_KWH: float = 820.0    # CEA India Operating Margin (OM) factor
+
     # Load Priority Score Weights (must sum to 1.0)
     WEIGHT_SUITABILITY: float = 0.40
     WEIGHT_OCCUPANCY: float = 0.20

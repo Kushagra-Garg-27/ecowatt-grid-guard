@@ -30,9 +30,49 @@ class VirtualActuator:
     def execute_command(self, action: str, requested_level: float, command_id: str) -> Dict[str, Any]:
         """
         Execute command on the physical load.
-        Enforces critical load protection and physical operating constraints.
+        Enforces input validation, critical load protection, and physical operating constraints.
         """
-        # Critical load protection rule
+        # 1. Payload and Command Validation
+        if not command_id or not isinstance(command_id, str):
+            return {
+                "command_id": str(command_id) if command_id else "unknown_cmd",
+                "load_id": self.load_id,
+                "status": "REJECTED_INVALID_PAYLOAD",
+                "actual_power_kw": self.current_power_kw,
+                "estimated_power_kw": self.current_power_kw,
+                "is_measured_power": False,
+                "latency_ms": 5.0,
+                "error_details": "Command ID must be a valid non-empty string.",
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+
+        if action not in ("CURTAIL", "MODULATE", "RESTORE"):
+            return {
+                "command_id": command_id,
+                "load_id": self.load_id,
+                "status": "REJECTED_UNSUPPORTED_ACTION",
+                "actual_power_kw": self.current_power_kw,
+                "estimated_power_kw": self.current_power_kw,
+                "is_measured_power": False,
+                "latency_ms": 5.0,
+                "error_details": f"Action '{action}' is unsupported. Allowed: CURTAIL, MODULATE, RESTORE.",
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+
+        if requested_level is None or requested_level < 0.0 or requested_level > 1.0:
+            return {
+                "command_id": command_id,
+                "load_id": self.load_id,
+                "status": "REJECTED_INVALID_OPERATING_LEVEL",
+                "actual_power_kw": self.current_power_kw,
+                "estimated_power_kw": self.current_power_kw,
+                "is_measured_power": False,
+                "latency_ms": 5.0,
+                "error_details": f"Operating level {requested_level} out of range [0.0, 1.0].",
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+
+        # 2. Critical Load Protection Rule
         if self.load_def.category == "CRITICAL" and (action == "CURTAIL" or requested_level < 1.0):
             logger.critical(f"CRITICAL LOAD PROTECTION: Attempted curtailment of {self.load_id} rejected!")
             return {
@@ -40,12 +80,14 @@ class VirtualActuator:
                 "load_id": self.load_id,
                 "status": "REJECTED_CRITICAL_PROTECTED",
                 "actual_power_kw": self.current_power_kw,
+                "estimated_power_kw": self.current_power_kw,
+                "is_measured_power": False,
                 "latency_ms": 15.0,
                 "error_details": "Critical electrical loads cannot be curtailed under any circumstance.",
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             }
 
-        # Simulated actuator failure / timeout test
+        # 3. Simulated Actuator Failure / Timeout
         if self.fail_simulation:
             self.status = "UNCERTAIN"
             logger.warning(f"Actuator {self.load_id} simulated failure/timeout triggered for command {command_id}")
@@ -54,6 +96,8 @@ class VirtualActuator:
                 "load_id": self.load_id,
                 "status": "TIMEOUT",
                 "actual_power_kw": self.current_power_kw,
+                "estimated_power_kw": self.current_power_kw,
+                "is_measured_power": False,
                 "latency_ms": 3000.0,
                 "error_details": "Actuator failed to acknowledge within timeout window.",
                 "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -85,6 +129,8 @@ class VirtualActuator:
             "load_id": self.load_id,
             "status": "SUCCESS",
             "actual_power_kw": self.current_power_kw,
+            "estimated_power_kw": self.current_power_kw,
+            "is_measured_power": False,
             "actual_change_kw": actual_change,
             "operating_level": self.current_level,
             "latency_ms": 42.0,
