@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Navbar } from './components/Navbar';
+import { InteractiveDotGrid } from './components/ui/interactive-dot-grid';
 import { OverviewDashboard } from './pages/OverviewDashboard';
 import { BuildingZones } from './pages/BuildingZones';
 import { LoadManagement } from './pages/LoadManagement';
@@ -125,62 +126,68 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#09090B] text-[#FAFAFA] flex flex-col font-sans">
-      <Navbar
-        currentTab={currentTab}
-        setCurrentTab={setCurrentTab}
-        isWsConnected={isWsConnected}
-        activeScenario={activeScenario}
-        onScenarioChange={handleScenarioChange}
-        scenarios={scenarios}
-        onReset={handleReset}
-        onTriggerOptimization={handleTriggerOptimization}
-      />
+    <div className="relative min-h-screen bg-white text-[#FAFAFA] flex flex-col font-sans overflow-x-hidden selection:bg-zinc-800 selection:text-white">
+      {/* Interactive Dot Grid Background (Canvas-based physics) */}
+      <InteractiveDotGrid />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-5 py-4">
-        {currentTab === 'overview' && (
-          <OverviewDashboard
-            status={status}
-            zones={zones}
-            summary={summary}
-            onNavigateTab={setCurrentTab}
-          />
-        )}
+      {/* Foreground Content */}
+      <div className="relative z-10 flex flex-col flex-1">
+        <Navbar
+          currentTab={currentTab}
+          setCurrentTab={setCurrentTab}
+          isWsConnected={isWsConnected}
+          activeScenario={activeScenario}
+          onScenarioChange={handleScenarioChange}
+          scenarios={scenarios}
+          onReset={handleReset}
+          onTriggerOptimization={handleTriggerOptimization}
+        />
 
-        {currentTab === 'zones' && <BuildingZones zones={zones} loads={loads} />}
+        <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-5 py-4">
+          {currentTab === 'overview' && (
+            <OverviewDashboard
+              status={status}
+              zones={zones}
+              summary={summary}
+              onNavigateTab={setCurrentTab}
+            />
+          )}
 
-        {currentTab === 'loads' && <LoadManagement loads={loads} onRefresh={refreshData} />}
+          {currentTab === 'zones' && <BuildingZones zones={zones} loads={loads} />}
 
-        {currentTab === 'optimizer' && (
-          <OptimizationCentre status={status} loads={loads} onRefresh={refreshData} />
-        )}
+          {currentTab === 'loads' && <LoadManagement loads={loads} onRefresh={refreshData} />}
 
-        {currentTab === 'scheduler' && <LoadScheduler summary={summary} />}
+          {currentTab === 'optimizer' && (
+            <OptimizationCentre status={status} loads={loads} onRefresh={refreshData} />
+          )}
 
-        {currentTab === 'analytics' && (
-          <SustainabilityAnalytics
-            summary={summary}
-            activeScenario={activeScenario}
-            onScenarioChange={handleScenarioChange}
-            scenarios={scenarios}
-          />
-        )}
+          {currentTab === 'scheduler' && <LoadScheduler summary={summary} />}
 
-        {currentTab === 'iot' && <IoTCommunicationMonitor />}
+          {currentTab === 'analytics' && (
+            <SustainabilityAnalytics
+              summary={summary}
+              activeScenario={activeScenario}
+              onScenarioChange={handleScenarioChange}
+              scenarios={scenarios}
+            />
+          )}
 
-        {currentTab === 'architecture' && (
-          <ArchitectureFeatures onNavigateTab={setCurrentTab} />
-        )}
-      </main>
+          {currentTab === 'iot' && <IoTCommunicationMonitor />}
 
-      <footer className="bg-[#09090B] border-t border-[#27272A] py-3 text-center text-xs text-[#71717A] font-mono">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>ECOWATT GRID GUARD &bull; CLOSED-LOOP IOT DEMAND OPTIMIZATION &bull; PATENT ARCHITECTURE</span>
-          <span className="text-[11px] text-[#A1A1AA] tabular-nums">
-            CoAP UDP:5683 &bull; MQTT QoS 1:1883 &bull; FastAPI 0.115 &bull; React 19
-          </span>
-        </div>
-      </footer>
+          {currentTab === 'architecture' && (
+            <ArchitectureFeatures onNavigateTab={setCurrentTab} />
+          )}
+        </main>
+
+        <footer className="bg-[#09090B]/90 backdrop-blur border-t border-[#27272A] py-3 text-center text-xs text-[#71717A] font-mono">
+          <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+            <span>ECOWATT GRID GUARD &bull; CLOSED-LOOP IOT DEMAND OPTIMIZATION &bull; PATENT ARCHITECTURE</span>
+            <span className="text-[11px] text-[#A1A1AA] tabular-nums">
+              CoAP UDP:5683 &bull; MQTT QoS 1:1883 &bull; FastAPI 0.115 &bull; React 19
+            </span>
+          </div>
+        </footer>
+      </div>
     </div>
   );
 };
