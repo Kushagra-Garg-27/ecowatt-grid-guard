@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Navbar } from './components/Navbar';
+import { SidebarNav } from './components/SidebarNav';
+import { TopBar } from './components/TopBar';
 import { InteractiveDotGrid } from './components/ui/interactive-dot-grid';
 import { OverviewDashboard } from './pages/OverviewDashboard';
 import { BuildingZones } from './pages/BuildingZones';
@@ -30,6 +31,34 @@ export const App: React.FC = () => {
   const [summary, setSummary] = useState<DailyAnalyticsSummary | null>(null);
   const [scenarios, setScenarios] = useState<Record<string, any>>({});
   const [activeScenario, setActiveScenario] = useState<string>('peak_demand_event');
+  const [isCollapsed, setIsCollapsed] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('ecowatt_sidebar_collapsed');
+      return saved !== null ? JSON.parse(saved) : false;
+    } catch {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('ecowatt_sidebar_collapsed', JSON.stringify(isCollapsed));
+    } catch (e) {
+      console.error('Failed to save sidebar state', e);
+    }
+  }, [isCollapsed]);
+
+  // Global keyboard shortcut Ctrl+B / Cmd+B to toggle sidebar collapse
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') {
+        e.preventDefault();
+        setIsCollapsed((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Load initial data
   const refreshData = useCallback(async () => {
@@ -126,16 +155,34 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="relative min-h-screen bg-white text-[#FAFAFA] flex flex-col font-sans overflow-x-hidden selection:bg-zinc-800 selection:text-white">
+    <div className="relative min-h-screen bg-white text-[#FAFAFA] flex flex-row font-sans overflow-x-hidden selection:bg-zinc-800 selection:text-white">
       {/* Interactive Dot Grid Background (Canvas-based physics) */}
       <InteractiveDotGrid />
 
-      {/* Foreground Content */}
-      <div className="relative z-10 flex flex-col flex-1">
-        <Navbar
+      {/* Collapsible Left Navigation Bar */}
+      <SidebarNav
+        currentTab={currentTab}
+        setCurrentTab={setCurrentTab}
+        isCollapsed={isCollapsed}
+        onToggleCollapse={() => setIsCollapsed((prev) => !prev)}
+        isWsConnected={isWsConnected}
+        activeScenario={activeScenario}
+        onScenarioChange={handleScenarioChange}
+        scenarios={scenarios}
+        onReset={handleReset}
+        onTriggerOptimization={handleTriggerOptimization}
+      />
+
+      {/* Main Workspace Area (Offset by sidebar width with smooth transition) */}
+      <div
+        className={`relative z-10 flex flex-col flex-1 min-w-0 transition-all duration-300 ease-in-out ${
+          isCollapsed ? 'ml-16' : 'ml-60'
+        }`}
+      >
+        <TopBar
           currentTab={currentTab}
-          setCurrentTab={setCurrentTab}
-          isWsConnected={isWsConnected}
+          isCollapsed={isCollapsed}
+          onToggleCollapse={() => setIsCollapsed((prev) => !prev)}
           activeScenario={activeScenario}
           onScenarioChange={handleScenarioChange}
           scenarios={scenarios}
@@ -179,7 +226,7 @@ export const App: React.FC = () => {
           )}
         </main>
 
-        <footer className="bg-[#09090B]/90 backdrop-blur border-t border-[#27272A] py-3 text-center text-xs text-[#71717A] font-mono">
+        <footer className="bg-[#09090B]/90 backdrop-blur border-t border-[#27272A] py-3 text-center text-xs text-[#71717A] font-mono mt-auto">
           <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
             <span>ECOWATT GRID GUARD &bull; CLOSED-LOOP IOT DEMAND OPTIMIZATION &bull; PATENT ARCHITECTURE</span>
             <span className="text-[11px] text-[#A1A1AA] tabular-nums">
